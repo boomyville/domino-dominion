@@ -1,0 +1,31 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://Game.gd" type="Script" id=1]
+
+[node name="Main" type="Node2D"]
+
+[node name="Game" type="Node2D" parent="."]
+script = ExtResource( 1 )
+
+[node name="GameBoard" type="VBoxContainer" parent="."]
+margin_right = 40.0
+margin_bottom = 40.0
+
+[node name="PlayBoard" type="VBoxContainer" parent="GameBoard"]
+margin_right = 67.0
+
+[node name="PlayerHand" type="HBoxContainer" parent="GameBoard"]
+margin_top = 4.0
+margin_right = 67.0
+margin_bottom = 4.0
+
+[node name="EnemyHand" type="HBoxContainer" parent="GameBoard"]
+margin_top = 8.0
+margin_right = 67.0
+margin_bottom = 8.0
+
+[node name="EndTurn" type="Button" parent="GameBoard"]
+margin_top = 12.0
+margin_right = 67.0
+margin_bottom = 32.0
+text = "End Turn"
