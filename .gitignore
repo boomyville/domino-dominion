@@ -20,3 +20,6 @@ Thumbs.db
 # Ignore IDE specific directories
 .vscode/
 .idea/
+
+# Godot specific directories
+.import/
