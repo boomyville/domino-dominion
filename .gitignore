@@ -23,3 +23,9 @@ Thumbs.db
 
 # Godot specific directories
 .import/
+
+# Ignore files with .import extension
+*.import
+
+# Ignore templates
+export_presets.cfg
