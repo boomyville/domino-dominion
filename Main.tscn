@@ -11,8 +11,9 @@ script = ExtResource( 1 )
 margin_right = 40.0
 margin_bottom = 40.0
 
-[node name="PlayBoard" type="VBoxContainer" parent="GameBoard"]
+[node name="PlayBoard" type="GridContainer" parent="GameBoard"]
 margin_right = 67.0
+columns = 8
 
 [node name="PlayerHand" type="HBoxContainer" parent="GameBoard"]
 margin_top = 4.0
