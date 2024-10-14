@@ -27,6 +27,16 @@ func update_domino():
 		set_clickable(false)
 	else:
 		set_clickable(true)
+	match get_user():
+		"player":
+			$LeftTile.modulate = Color(0, 1, 0) # Green color for player
+			$RightTile.modulate = Color(0, 1, 0) # Green color for player
+		"enemy":
+			$LeftTile.modulate = Color(1, 0.5, 0.5) # Red color for enemy
+			$RightTile.modulate = Color(1, 0.5, 0.5) # Red color for enemy
+		"board":
+			$LeftTile.modulate = Color(1.0, 1.0, 1.0) # Black color for board
+			$RightTile.modulate = Color(1.0, 1.0, 1.0) # Black color for board
 
 func set_clickable(clickable: bool):
 	$LeftTile.disabled = not clickable # Disable Button1 if not clickable

@@ -21,6 +21,7 @@ var player_turn = true # Keep track of whose turn it is
 # Called when the node enters the scene tree
 func _ready():
 	print("Loading...")
+	randomize() # Initialize random number generator
 	end_turn_button.connect("pressed", self, "_on_end_turn_pressed")
 
 	initialize_domino_sets() # Generate the dominos for player and AI
@@ -29,8 +30,8 @@ func _ready():
 	draw_first_domino()
 
 	# Starting hand
-	draw_additional_player_dominos(5)
-	draw_additional_enemy_dominos(5)
+	draw_additional_dominos(2, "all") 
+	
 
 # Initialize each player's domino sets (20 random dominos) and draw 5 to start
 func initialize_domino_sets():
@@ -131,7 +132,7 @@ func ai_play():
 		var domino_to_play = null  # Variable to hold the domino to play
 
 		# Find a playable domino
-		for domino in ai_dominos:
+		for domino in ai_hand.get_children():
 			var number1 = domino.get_numbers()[0]
 			var number2 = domino.get_numbers()[1]
 			print("Checking domino: " + str(number1) + ", " + str(number2))
@@ -166,38 +167,71 @@ func ai_play():
 
 	# Draw additional dominos for the player and AI if the game is not over
 	if not check_game_over():
-		draw_additional_player_dominos(2)  # Draw additional dominos for the player
-		draw_additional_enemy_dominos(2)  # Draw additional dominos for the AI
+		draw_additional_dominos(1, "all")  # Draw additional dominos for the player and AI
 
 
 
 # Check if the game is over
 func check_game_over():
-	if player_dominos.size() == 0:
+	if player_hand.get_children().size() == 0:
 		print("Player wins!")
 		return true
-	elif ai_dominos.size() == 0:
+	elif ai_hand.get_children().size() == 0:
 		print("AI wins!")
 		return true
 	else:
 		print("Game continues...")
 
 # Draw additional dominos for the player
-func draw_additional_player_dominos(count: int):
-	var new_dominos = draw_dominos_from_pile(player_pile, count)
-	add_domino_to_hand(new_dominos, "player")
-
-# Draw additional dominos for the enemy
-func draw_additional_enemy_dominos(count: int):
-	var new_dominos = draw_dominos_from_pile(ai_pile, count)
-	add_domino_to_hand(new_dominos, "enemy")
+func draw_additional_dominos(count: int, type: String):
+	if(type == "player"):
+		var new_dominos = draw_dominos_from_pile(player_pile, count)
+		print("Drawing for player: ", new_dominos[0].get_numbers())
+		add_domino_to_hand(new_dominos, type)
+	elif(type == "enemy"):
+		var new_dominos = draw_dominos_from_pile(ai_pile, count)
+		print("Drawing for enemy: ", new_dominos[0].get_numbers())
+		add_domino_to_hand(new_dominos, type)
+	elif(type == "all"):
+		var new_dominos = draw_dominos_from_pile(player_pile, count)
+		var new_dominos2 = draw_dominos_from_pile(ai_pile, count)
+		add_domino_to_hand(new_dominos, "player")
+		add_domino_to_hand(new_dominos2, "enemy")
+		print("Drawing for player: ", new_dominos[0].get_numbers())
+		print("Drawing for enemy: ", new_dominos2[0].get_numbers())
+	else:
+		return;
+	
 
 # Add domino to hand
 func add_domino_to_hand(dominos: Array, type: String = "player"):
+	yield(get_tree().create_timer(0.2), "timeout") 
 	for domino in dominos:
 		if type == "player":
 			player_dominos.append(domino)
 			player_hand.add_child(domino)
+			animate_domino(domino, player_hand)
 		elif type == "enemy":
 			ai_dominos.append(domino)
 			ai_hand.add_child(domino)
+			animate_domino(domino, ai_hand)
+
+# Animate the domino sliding from the right to its position in the HBoxContainer
+func animate_domino(domino, container: HBoxContainer):
+	# Calculate the starting position (off-screen to the right)
+	var start_position = Vector2(OS.window_size.x, domino.rect_position.y)
+	
+	# Add the domino to the container to get its intended position
+	container.add_child(domino)
+	
+	# Calculate the end position based on the number of children in the container
+	var domino_index = container.get_child_count() - 1
+	var domino_width = domino.get_combined_minimum_size().x + container.get_constant("separation")
+	var end_position = Vector2(domino_width * domino_index, domino.rect_position.y)
+	
+	# Set the initial position to the start position
+	domino.rect_position = start_position
+	
+	# Animate the domino to its intended position
+	container.get_parent().get_node("Tween").interpolate_property(domino, "rect_position", start_position, end_position, 1.0, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+	container.get_parent().get_node("Tween").start()

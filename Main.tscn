@@ -30,3 +30,5 @@ margin_top = 12.0
 margin_right = 67.0
 margin_bottom = 32.0
 text = "End Turn"
+
+[node name="Tween" type="Tween" parent="GameBoard"]
