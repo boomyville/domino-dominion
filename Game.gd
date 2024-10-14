@@ -62,6 +62,10 @@ func draw_dominos_from_pile(pile: Array, count: int) -> Array:
 	for _i in range(count):
 		if pile.size() > 0:
 			drawn_dominos.append(pile.pop_back()) # Take a domino from the end of the pile
+		else:
+			print("No more dominos in the pile!")
+			check_game_over() # Check if the game is over
+			break
 	return drawn_dominos
 
 # Draw the first domino on the play field (determined by dice roll)
@@ -101,13 +105,33 @@ func move_domino_to_playfield(domino_container):
 	# Update the domino's internal values (swap if needed)
 	domino_container.set_numbers(number1, number2, "board") # Update visual representation
 
+	var tween = get_node("../GameBoard/Tween")
+	var start_position = domino_container.get_global_position()
+
+	# Calculate the target position
+	var target_positionX = play_board.get_child_count() % play_board.columns * (domino_container.get_combined_minimum_size().x + play_board.get_constant("hseparation"))
+	var target_positionY = floor(play_board.get_child_count() / play_board.columns) * (domino_container.get_combined_minimum_size().y + play_board.get_constant("vseparation"))
+	var target_position = Vector2(target_positionX, target_positionY)
+
+	# Temporarily hide the domino
+	domino_container.visible = false
+						
 	if player_turn:
 		player_hand.remove_child(domino_container) # Remove from player's hand
 	else:
 		ai_hand.remove_child(domino_container) # Remove from AI's hand
 	
 	play_board.add_child(domino_container) # Add to play field
+
+	# Set the initial position to the start position
+	domino_container.rect_position = start_position
+
+	# Show the domino and animate it to its position on the board
+	domino_container.visible = true
+	tween.interpolate_property(domino_container, "rect_position", start_position, target_position, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+	tween.start()
 	
+
 	# Update the last played number (the second number of the domino)
 	last_played_number = number2
 	print("Played a domino! Last played number is now: ", last_played_number)
@@ -175,9 +199,23 @@ func ai_play():
 func check_game_over():
 	if player_hand.get_children().size() == 0:
 		print("Player wins!")
+		end_turn_button.set_text("Player wins!")
+		end_turn_button.disabled = true
 		return true
 	elif ai_hand.get_children().size() == 0:
 		print("AI wins!")
+		end_turn_button.set_text("Enemy wins!")
+		end_turn_button.disabled = true
+		return true
+	elif player_pile.size() == 0:
+		print("Player loses! No more dominos to draw.")
+		end_turn_button.set_text("Player loses!")
+		end_turn_button.disabled = true
+		return true
+	elif ai_pile.size() == 0:
+		print("Enemy loses! No more dominos to draw.")
+		end_turn_button.set_text("Enemy loses!")
+		end_turn_button.disabled = true
 		return true
 	else:
 		print("Game continues...")
@@ -208,10 +246,14 @@ func add_domino_to_hand(dominos: Array, type: String = "player"):
 	yield(get_tree().create_timer(0.2), "timeout") 
 	for domino in dominos:
 		if type == "player":
+			# Set initial opacity to 0
+			domino.modulate.a = 0
 			player_dominos.append(domino)
 			player_hand.add_child(domino)
 			animate_domino(domino, player_hand)
 		elif type == "enemy":
+			# Set initial opacity to 0
+			domino.modulate.a = 0
 			ai_dominos.append(domino)
 			ai_hand.add_child(domino)
 			animate_domino(domino, ai_hand)
@@ -220,6 +262,7 @@ func add_domino_to_hand(dominos: Array, type: String = "player"):
 func animate_domino(domino, container: HBoxContainer):
 	# Calculate the starting position (off-screen to the right)
 	var start_position = Vector2(OS.window_size.x, domino.rect_position.y)
+	
 	
 	# Add the domino to the container to get its intended position
 	container.add_child(domino)
@@ -232,6 +275,10 @@ func animate_domino(domino, container: HBoxContainer):
 	# Set the initial position to the start position
 	domino.rect_position = start_position
 	
-	# Animate the domino to its intended position
-	container.get_parent().get_node("Tween").interpolate_property(domino, "rect_position", start_position, end_position, 1.0, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
-	container.get_parent().get_node("Tween").start()
+	# Show the domino and animate it to its position in the container
+	var tween = container.get_parent().get_node("Tween")
+	tween.interpolate_property(domino, "rect_position", start_position, end_position, 1.0, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+	tween.interpolate_property(domino, "modulate:a", 0, 1, 0.1, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+	tween.start()
+	
+	#domino.visible = true
