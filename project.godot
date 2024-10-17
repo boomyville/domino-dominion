@@ -8,6 +8,16 @@
 
 config_version=4
 
+_global_script_classes=[ {
+"base": "HBoxContainer",
+"class": "DominoContainer",
+"language": "GDScript",
+"path": "res://Domino/DominoContainer.gd"
+} ]
+_global_script_class_icons={
+"DominoContainer": ""
+}
+
 [application]
 
 config/name="Domino Dominion"
