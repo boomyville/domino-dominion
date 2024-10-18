@@ -2,8 +2,8 @@ extends DominoContainer
 
 func _init():
 	number1 = random_value()
-	number2 = -1
-	domino_name = "Quick Strike"
+	number2 = 0
+	domino_name = "Block"
 
 func effect(user, target):
-	target.damage(7)
+	user.add_shields(4)

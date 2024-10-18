@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene load_steps=4 format=2]
 
 [ext_resource path="res://Game.gd" type="Script" id=1]
 [ext_resource path="res://Battler.gd" type="Script" id=2]
+[ext_resource path="res://PlayerHP.gd" type="Script" id=3]
 
 [node name="Main" type="Node2D"]
 
@@ -34,3 +35,37 @@ margin_bottom = 32.0
 text = "End Turn"
 
 [node name="Tween" type="Tween" parent="GameBoard"]
+
+[node name="GUIContainer" type="GridContainer" parent="."]
+margin_left = -1.0
+margin_top = 563.0
+margin_right = 1024.0
+margin_bottom = 600.0
+columns = 2
+
+[node name="PlayerHP" type="ProgressBar" parent="GUIContainer"]
+margin_right = 400.0
+margin_bottom = 14.0
+grow_horizontal = 2
+grow_vertical = 2
+rect_min_size = Vector2( 400, 12 )
+script = ExtResource( 3 )
+
+[node name="PlayerShields" type="Label" parent="GUIContainer"]
+margin_left = 404.0
+margin_right = 443.0
+margin_bottom = 14.0
+text = "Shield"
+
+[node name="EnemyHP" type="ProgressBar" parent="GUIContainer"]
+margin_top = 18.0
+margin_right = 400.0
+margin_bottom = 32.0
+script = ExtResource( 3 )
+
+[node name="EnemyShields" type="Label" parent="GUIContainer"]
+margin_left = 404.0
+margin_top = 18.0
+margin_right = 443.0
+margin_bottom = 32.0
+text = "Shield"

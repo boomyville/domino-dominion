@@ -9,8 +9,11 @@ onready var enemy_hand = get_node("../GameBoard/EnemyHand") # AI's hand containe
 onready var play_board = get_node("../GameBoard/PlayBoard") # Play field container
 onready var end_turn_button = get_node("../GameBoard/EndTurn") # Button for ending turn
 
-var player = preload("res://Battlers/Player/Player.tscn").instance()
-var enemy = preload("res://Battlers/Enemy/Enemy.tscn").instance()
+var player_scene = preload("res://Battlers/Player/Player.tscn")
+var enemy_scene = preload("res://Battlers/Enemy/Enemy.tscn")
+
+var player
+var enemy
 
 # Domino data
 var player_pile = []
@@ -23,6 +26,8 @@ var player_turn = true # Keep track of whose turn it is
 func _ready():
 	randomize() # Initialize random number generator
 
+	initialize_units() # Initialize the player and AI units
+
 	initialize_battle() # Initialize the battle
 
 	end_turn_button.connect("pressed", self, "_on_end_turn_pressed")
@@ -30,6 +35,12 @@ func _ready():
 	# You may also want to initialize the board with the first domino
 	draw_first_domino()
 
+func initialize_units():
+	player = player_scene.instance()
+	add_child(player)
+
+	enemy = enemy_scene.instance()
+	add_child(enemy)
 	
 func initialize_battle():
 	# Initialize the battle with player and AI
@@ -61,17 +72,24 @@ func _on_domino_pressed(domino_container: DominoContainer, pressed_number: int):
 
 func play_domino(domino_container: DominoContainer, pressed_number: int):
 	print("Domino pressed!  ", pressed_number)
+	var result = domino_container.can_play(last_played_number, pressed_number)
 	# Check if the domino can be played (if either number matches the last played number)
-	if domino_container.can_play(last_played_number) == "playable":
+	if result == "playable":
 		move_domino_to_playfield(domino_container)
-	elif domino_container.can_play(last_played_number) == "swap":
-		domino_container.swap_values() # Swap the numbers
+	elif result == "swap":
+		domino_container.swap_values()
 		move_domino_to_playfield(domino_container)
-	elif domino_container.can_play(last_played_number) == "unplayable":
+	elif result == "unplayable":
 		print("Invalid move. You can only play dominos that match the last number.")
 
 # Move a valid domino to the play field and disable its buttons
 func move_domino_to_playfield(domino_container):
+	print("MOVING")
+	# Damage
+	if domino_container.get_user() == "player":
+		domino_container.effect(player, enemy)
+	elif domino_container.get_user() == "enemy":
+		domino_container.effect(enemy, player)
 
 	var tween = get_node("../GameBoard/Tween")
 	var start_position = domino_container.get_global_position()
@@ -176,6 +194,21 @@ func check_game_over():
 		return true
 	elif enemy_pile.size() == 0:
 		print("Enemy loses! No more dominos to draw.")
+		end_turn_button.set_text("Enemy loses!")
+		end_turn_button.disabled = true
+		return true
+	elif(player.hp <= 0):
+		print("Player loses! HP is 0.")
+		end_turn_button.set_text("Player loses!")
+		end_turn_button.disabled = true
+		return true
+	elif(enemy.hp <= 0):
+		print("Enemy loses! HP is 0.")
+		end_turn_button.set_text("Enemy is defeated!")
+		end_turn_button.disabled = true
+		return true
+	elif(enemy.hp <= 0):
+		print("Enemy loses! HP is 0.")
 		end_turn_button.set_text("Enemy loses!")
 		end_turn_button.disabled = true
 		return true

@@ -74,19 +74,33 @@ func get_non_matching_values(arr: Array, value: int) -> Array:
 			non_matching_values.append(element)
 	return non_matching_values
 
-func can_play(last_played_number: int) -> String:
+func can_play(last_played_number: int, pressed_number: int = get_numbers()[0]) -> String:
 	# playable
 	# swap
 	# unplayable
 
-	if(get_numbers()[0] == last_played_number || get_numbers()[0] == -1):
-		print("Playable")
+	# Check if pressed number is playable
+
+	if(pressed_number == last_played_number || pressed_number  == -1):
+		if(get_numbers()[0] == pressed_number):
+			print("Play: " + str(get_numbers()[0]), " | ", pressed_number)
+			return "playable"
+		else:
+			print("swapping pressed domino")
+			return "swap"
+	
+	# Check if first number is playable
+	elif(get_numbers()[0] == -1 || get_numbers()[0] == last_played_number):
+		print("first number matches")
 		return "playable"
-	elif(get_numbers()[1] == last_played_number || get_numbers()[1] == -1):
-		print("Swap")
+
+	# Check if second number is playable
+	elif(get_numbers()[1] == -1 || get_numbers()[1] == last_played_number):
+		print("second number matches, swapping")
 		return "swap"
+
 	else:
-		print("Unplayable")
+		#print("Unplayable")
 		return "unplayable"
 
 func swap_values():
@@ -159,3 +173,6 @@ func is_mouse_over_any_child() -> bool:
         if child.get_rect().has_point(child.get_local_mouse_position()):
             return true
     return false
+
+func effect(user, target):
+	print("Effect not implemented")
