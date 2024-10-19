@@ -5,5 +5,6 @@ func _init():
 	number2 = random_value()	
 	domino_name = "Wild Swing"
 
-func effect(user, target):
-	target.damage(5)
+func effect(origin, target):
+	.effect(origin, target)
+	attack_message(origin, target, target.damage(5))

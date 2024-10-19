@@ -5,5 +5,6 @@ func _init():
 	number2 = 0
 	domino_name = "Block"
 
-func effect(user, target):
-	user.add_shields(4)
+func effect(origin, target):
+	.effect(origin, target)
+	shield_message(origin, 4)

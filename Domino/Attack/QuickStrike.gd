@@ -5,5 +5,13 @@ func _init():
 	number2 = -1
 	domino_name = "Quick Strike"
 
-func effect(user, target):
-	target.damage(7)
+func effect(origin, target):
+	.effect(origin, target)
+	attack_message(origin, target, target.damage(7))
+
+func requirements(origin, target):
+	print(origin.dominos_played_this_turn)
+	if origin.dominos_played_this_turn.size() > 0:
+		return false
+	else:
+		return true

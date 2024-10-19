@@ -8,6 +8,7 @@ onready var player_hand = get_node("../GameBoard/PlayerHand") # Player's hand co
 onready var enemy_hand = get_node("../GameBoard/EnemyHand") # AI's hand container (non-clickable)
 onready var play_board = get_node("../GameBoard/PlayBoard") # Play field container
 onready var end_turn_button = get_node("../GameBoard/EndTurn") # Button for ending turn
+onready var battle_text = get_node("../GUIContainer/BattleText")
 
 var player_scene = preload("res://Battlers/Player/Player.tscn")
 var enemy_scene = preload("res://Battlers/Enemy/Enemy.tscn")
@@ -71,8 +72,16 @@ func _on_domino_pressed(domino_container: DominoContainer, pressed_number: int):
 		print("It's not your turn!")
 
 func play_domino(domino_container: DominoContainer, pressed_number: int):
-	print("Domino pressed!  ", pressed_number)
-	var result = domino_container.can_play(last_played_number, pressed_number)
+	var user
+	var target;
+	if(domino_container.get_user() == "player"):
+		user = player
+		target = enemy
+	elif(user == "enemy"):
+		target = player
+		user = enemy
+	
+	var result = domino_container.can_play(last_played_number,  user, target, pressed_number)
 	# Check if the domino can be played (if either number matches the last played number)
 	if result == "playable":
 		move_domino_to_playfield(domino_container)
@@ -80,11 +89,13 @@ func play_domino(domino_container: DominoContainer, pressed_number: int):
 		domino_container.swap_values()
 		move_domino_to_playfield(domino_container)
 	elif result == "unplayable":
-		print("Invalid move. You can only play dominos that match the last number.")
+		battle_text.text = "Invalid move. You can only play dominos that match the last number."
+	elif result == "prohibited":
+		battle_text.text = "Invalid move. Conditions do not meet requirements."
 
 # Move a valid domino to the play field and disable its buttons
 func move_domino_to_playfield(domino_container):
-	print("MOVING")
+	
 	# Damage
 	if domino_container.get_user() == "player":
 		domino_container.effect(player, enemy)
@@ -144,6 +155,7 @@ func _on_end_turn_pressed():
 		if player_turn:
 			player_turn = false
 			end_turn_button.disabled = true # Disable end turn button during AI's turn
+			player.dominos_played_this_turn = [] # Reset the dominos played this turn
 			ai_play()
 
 # AI plays its dominos
@@ -157,7 +169,7 @@ func ai_play():
 
 		# Find a playable domino
 		for domino in enemy_hand.get_children():
-			if domino.can_play(last_played_number) != "unplayable":
+			if domino.can_play(last_played_number, enemy, player, domino.get_numbers()[0]) != "unplayable":
 				domino_to_play = domino  # Found a playable domino
 				break  # Exit the loop since we found a domino
 
@@ -177,6 +189,7 @@ func ai_play():
 
 	end_turn_button.disabled = false  # Enable end turn button
 	player_turn = true  # Switch to player's turn
+	enemy.dominos_played_this_turn = []  # Reset the dominos played this turn
 
 	# Draw additional dominos for the player and AI if the game is not over
 	if not check_game_over():

@@ -5,5 +5,6 @@ func _init():
 	number2 = random_value()
 	domino_name = "Strike"
 
-func effect(user, target):
-	target.damage(number2)
+func effect(origin, target):
+	.effect(origin, target)
+	attack_message(origin, target, target.damage(max(number1, number2))

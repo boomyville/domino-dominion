@@ -7,6 +7,7 @@ var number2: int = 0
 var user: String = "none"
 var domino_name = ""
 var is_mouse_in_container = false
+var battle_text;
 signal domino_pressed(domino_container)
 
 # Function to set the numbers of the domino
@@ -74,14 +75,17 @@ func get_non_matching_values(arr: Array, value: int) -> Array:
 			non_matching_values.append(element)
 	return non_matching_values
 
-func can_play(last_played_number: int, pressed_number: int = get_numbers()[0]) -> String:
+func can_play(last_played_number: int, user, target, pressed_number: int = get_numbers()[0]) -> String:
 	# playable
 	# swap
 	# unplayable
+	# prohibited
 
 	# Check if pressed number is playable
+	if(requirements(user, target) == false):
+		return "prohibited"
 
-	if(pressed_number == last_played_number || pressed_number  == -1):
+	elif(pressed_number == last_played_number || pressed_number  == -1 || last_played_number == -1):
 		if(get_numbers()[0] == pressed_number):
 			print("Play: " + str(get_numbers()[0]), " | ", pressed_number)
 			return "playable"
@@ -98,7 +102,6 @@ func can_play(last_played_number: int, pressed_number: int = get_numbers()[0]) -
 	elif(get_numbers()[1] == -1 || get_numbers()[1] == last_played_number):
 		print("second number matches, swapping")
 		return "swap"
-
 	else:
 		#print("Unplayable")
 		return "unplayable"
@@ -133,6 +136,8 @@ func _ready():
 	$Popup/NameField.text = domino_name
 	$Popup/NameField.update() # Force update to ensure size is recalculated
 	update_domino() # Ensure numbers are shown when the domino is created
+
+	battle_text = get_node("/root/Main/GUIContainer/BattleText")
 
 func random_value():
 	return randi() % 6 + 1
@@ -174,5 +179,16 @@ func is_mouse_over_any_child() -> bool:
             return true
     return false
 
-func effect(user, target):
-	print("Effect not implemented")
+func requirements(origin, target):
+	print(origin.name() + " | " + target.name())
+	return true
+
+func effect(origin, target):
+	origin.dominos_played.append(self)
+	origin.dominos_played_this_turn.append(self)
+
+func attack_message(origin, target, damage):
+	battle_text.text = origin.name() + " used " + domino_name + " on " + target.name() + " for " + str(damage) + " damage!"
+
+func shield_message(origin, shield):
+	battle_text.text = origin.name() + " used " + domino_name + " and gained " + str(shield) + " shield(s)!"

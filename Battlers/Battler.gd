@@ -1,6 +1,7 @@
 extends Node
 
 # Declare instance variables here
+var battler_name: String
 var hp: int
 var max_hp: int
 var shield: int
@@ -11,8 +12,11 @@ var deck: Array
 var hp_gauge
 var shield_text
 
+var dominos_played: Array
+var dominos_played_this_turn: Array
 
-func _init(hp: int = 50, max_hp: int = 50, shield: int = 0, max_shield: int = 999, initial_draw: int = 5, draw_per_turn: int = 2, deck: Array = [], hp_gauge = null, shield_text = null):		
+func _init(battler_name: String = "Battler", hp: int = 50, max_hp: int = 50, shield: int = 0, max_shield: int = 999, initial_draw: int = 5, draw_per_turn: int = 2, deck: Array = [], hp_gauge = null, shield_text = null):		
+	self.battler_name = battler_name
 	self.hp = hp
 	self.max_hp = max_hp	
 	self.shield = shield	
@@ -22,9 +26,14 @@ func _init(hp: int = 50, max_hp: int = 50, shield: int = 0, max_shield: int = 99
 	self.deck = deck
 	self.hp_gauge = hp_gauge
 	self.shield_text = shield_text
+	self.dominos_played = []
+	self.dominos_played_this_turn = []
 
 	set_hp(max_hp)
 	initialize_deck()
+
+func name():
+	return self.battler_name
 
 func initialize_deck():
 	pass
@@ -40,7 +49,6 @@ func get_deck():
 		print(domino.get_user(), ": ", domino.get_numbers())
 	return self.deck
 
-
 func add_to_deck(domino: DominoContainer, type: String):
 	domino.set_user(type)
 	self.deck.append(domino)
@@ -51,7 +59,7 @@ func set_hp(new_hp):
 	update()
 
 # Function to deal damage to the player
-func damage(amount):
+func damage(amount) -> int:
 	print("Dealing damage: ", amount)
 	var shield_difference = self.shield - amount
 	if shield_difference < 0:
@@ -63,19 +71,23 @@ func damage(amount):
 		print("Full shield block")
 		self.shield -= amount
 	update()
+	return amount
 
-func add_shields(amount):
+func add_shields(amount) -> int:
 	self.shield += amount
 	update()
+	return amount
 
 # Function to heal the player
-func heal(amount):
+func heal(amount) -> int:
 	self.hp += amount
 	self.hp = clamp(self.hp, 0, self.max_hp)
 	update()
+	return amount
 
 func update():
 	if(self.hp_gauge != null):
 		self.hp_gauge.new_value(float(self.hp)/float(self.max_hp)*100)
+		self.hp_gauge.get_node("HPLabel").text = str(self.hp) + " / " + str(self.max_hp)
 	if(self.shield_text != null):
 		self.shield_text.text = "[" + str(self.shield) + "]"
