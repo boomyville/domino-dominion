@@ -1,4 +1,4 @@
-extends DominoContainer
+extends "res://Domino/DominoContainer.gd"
 
 func _init():
 	number1 = random_value()
@@ -7,4 +7,4 @@ func _init():
 
 func effect(origin, target):
 	.effect(origin, target)
-	shield_message(origin, 4)
+	shield_message(origin, origin, origin.add_shields(4))

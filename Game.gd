@@ -77,7 +77,7 @@ func play_domino(domino_container: DominoContainer, pressed_number: int):
 	if(domino_container.get_user() == "player"):
 		user = player
 		target = enemy
-	elif(user == "enemy"):
+	elif(domino_container.get_user() == "enemy"):
 		target = player
 		user = enemy
 	
@@ -169,7 +169,8 @@ func ai_play():
 
 		# Find a playable domino
 		for domino in enemy_hand.get_children():
-			if domino.can_play(last_played_number, enemy, player, domino.get_numbers()[0]) != "unplayable":
+			print(enemy, player, last_played_number, domino.get_numbers()[0])
+			if domino.can_play(last_played_number, enemy, player, domino.get_numbers()[0]) != "unplayable" && domino.can_play(last_played_number, enemy, player, domino.get_numbers()[0]) != "prohibited":
 				domino_to_play = domino  # Found a playable domino
 				break  # Exit the loop since we found a domino
 

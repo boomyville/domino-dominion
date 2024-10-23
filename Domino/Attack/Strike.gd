@@ -7,4 +7,4 @@ func _init():
 
 func effect(origin, target):
 	.effect(origin, target)
-	attack_message(origin, target, target.damage(max(number1, number2))
+	attack_message(origin, target, target.damage(max(number1, number2)))
