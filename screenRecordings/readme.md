@@ -7,5 +7,5 @@ Added animations, colour differentiation for player/AI and better AI logic
 
 Third build
 Added sprites
-![Thirs Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/23October2024.gif?raw=true)
+![Third Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/23October2024.gif?raw=true)
 
