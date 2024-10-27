@@ -1,4 +1,5 @@
 extends Node
+class_name Main
 
 # Load the DominoContainer scene
 onready var DominoContainerScene = preload("res://Domino/Domino.tscn")
@@ -9,7 +10,7 @@ onready var enemy_hand = get_node("../GameBoard/EnemyHand") # AI's hand containe
 onready var play_board = get_node("../GameBoard/PlayBoard") # Play field container
 onready var end_turn_button = get_node("../GameBoard/EndTurn") # Button for ending turn
 onready var battle_text = get_node("../GUIContainer/BattleText")
-
+onready var tween = get_node("../GameBoard/Tween")
 var player_scene = preload("res://Battlers/Player/Player.tscn")
 var enemy_scene = preload("res://Battlers/Enemy/Enemy.tscn")
 
@@ -23,7 +24,9 @@ var enemy_pile = []
 var last_played_number = -1 # The number to match for the next move
 var player_turn = true # Keep track of whose turn it is
 
-# Called when the node enters the scene tree
+#=====================================================
+# Initialisation
+#=====================================================
 func _ready():
 	randomize() # Initialize random number generator
 
@@ -52,8 +55,7 @@ func initialize_battle():
 	for domino in player_pile:
 		domino.connect("domino_pressed", self, "_on_domino_pressed") # Connect the signal
 	draw_player_hand(player.get_initial_draw())
-	draw_enemy_hand(player.get_initial_draw())
-
+	draw_enemy_hand(enemy.get_initial_draw())
 
 # Draw the first domino on the play field (determined by dice roll)
 func draw_first_domino():
@@ -61,8 +63,11 @@ func draw_first_domino():
 	var domino = DominoContainerScene.instance()
 	domino.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
 	play_board.add_child(domino)
-	last_played_number = first_domino_number # Set the last played number
-	print("First number: " + str(first_domino_number))
+	set_played_number(first_domino_number) # Set the last played number
+
+#=====================================================
+# Event handling (Dominos)
+#=====================================================
 
 # Handle the event when a player plays a domino
 func _on_domino_pressed(domino_container: DominoContainer, pressed_number: int):
@@ -96,13 +101,13 @@ func play_domino(domino_container: DominoContainer, pressed_number: int):
 # Move a valid domino to the play field and disable its buttons
 func move_domino_to_playfield(domino_container):
 	
+	domino_container.clear_highlight()
 	# Damage
 	if domino_container.get_user() == "player":
 		domino_container.effect(player, enemy)
 	elif domino_container.get_user() == "enemy":
 		domino_container.effect(enemy, player)
 
-	var tween = get_node("../GameBoard/Tween")
 	var start_position = domino_container.get_global_position()
 
 	# Calculate the target position
@@ -144,10 +149,21 @@ func move_domino_to_playfield(domino_container):
 	tween.start()
 
 	# Update the last played number (the second number of the domino)
-	last_played_number = domino_container.get_numbers()[1]
-	print("Played a domino! ", domino_container.get_numbers(), " Last played number is now: ", last_played_number)
-
+	set_played_number(domino_container.get_numbers()[1])
 	
+	# Update player and enemy
+	player.update()
+	enemy.update()
+	
+func set_played_number(number: int):
+	last_played_number = number
+	update_domino_highlights() # Update the highlights of the dominos in the player's hand
+
+
+#=====================================================
+# Turn End and AI Turn
+#=====================================================
+
 # End the player's turn and start the AI's turn
 func _on_end_turn_pressed():
 	print("Ending turn...")
@@ -156,10 +172,20 @@ func _on_end_turn_pressed():
 			player_turn = false
 			end_turn_button.disabled = true # Disable end turn button during AI's turn
 			player.dominos_played_this_turn = [] # Reset the dominos played this turn
-			ai_play()
+			enemy_start_turn()
+
+func enemy_end_turn():
+	player_start_turn()  # Start the player's turn
 
 # AI plays its dominos
-func ai_play():
+func enemy_start_turn():
+
+	# Effects
+	var effect_data = {"user": enemy, "target": player }
+	for effect in enemy.effects:
+		effect.on_event("turn_start", effect_data)   
+		effect.update_duration(enemy)
+	
 	var count = 0
 	var playable_dominos = true  # Flag to indicate if there are playable dominos
 
@@ -169,7 +195,6 @@ func ai_play():
 
 		# Find a playable domino
 		for domino in enemy_hand.get_children():
-			print(enemy, player, last_played_number, domino.get_numbers()[0])
 			if domino.can_play(last_played_number, enemy, player, domino.get_numbers()[0]) != "unplayable" && domino.can_play(last_played_number, enemy, player, domino.get_numbers()[0]) != "prohibited":
 				domino_to_play = domino  # Found a playable domino
 				break  # Exit the loop since we found a domino
@@ -187,17 +212,25 @@ func ai_play():
 		print("AI cannot play any more moves, player's turn resumes.")
 	else:
 		print("AI played " + str(count) + " dominos.")
+	enemy_end_turn()  # End the AI's turn
 
-	end_turn_button.disabled = false  # Enable end turn button
-	player_turn = true  # Switch to player's turn
-	enemy.dominos_played_this_turn = []  # Reset the dominos played this turn
+func player_start_turn():
+	
+	player_turn = true
+	end_turn_button.disabled = false  # Enable the end turn button
 
-	# Draw additional dominos for the player and AI if the game is not over
-	if not check_game_over():
-		draw_player_hand(player.get_draw_per_turn())
-		draw_enemy_hand(enemy.get_draw_per_turn())
+	# Effects
+	var effect_data = {"user": player, "target": enemy }
+	for effect in player.effects:
+		effect.on_event("turn_start", effect_data)   
+		effect.update_duration(player)
+	
+	draw_player_hand(player.get_draw_per_turn())  # Draw dominos for the player
+	draw_enemy_hand(enemy.get_draw_per_turn())  # Draw dominos for the enemy
 
-
+#=====================================================
+# Game States
+#=====================================================
 
 # Check if the game is over
 func check_game_over():
@@ -230,8 +263,9 @@ func check_game_over():
 		print("Game continues...")
 		return false
 
-
-
+#=====================================================
+# Between Turns
+#=====================================================
 
 # Draw additional dominos for the player
 func draw_player_hand(count: int):
@@ -239,7 +273,6 @@ func draw_player_hand(count: int):
 	var drawn_dominos = []
 	for _i in range(count):
 		if player_pile.size() > 0:
-			print("Drawing for ", player_pile.back().get_user(), ": ", player_pile.back().get_numbers())
 			drawn_dominos.append(player_pile.pop_back()) # Take a domino from the end of the pile
 		else:
 			print("No more dominos in the pile!")
@@ -260,7 +293,6 @@ func draw_enemy_hand(count: int):
 	var drawn_dominos = []
 	for _i in range(count):
 		if enemy_pile.size() > 0:
-			print("Drawing for ", enemy_pile.back().get_user(), ": ", enemy_pile.back().get_numbers())
 			drawn_dominos.append(enemy_pile.pop_back()) # Take a domino from the end of the pile
 		else:
 			print("No more dominos in the pile!")
@@ -282,7 +314,7 @@ func animate_domino(domino, container: HBoxContainer):
 	
 	
 	# Add the domino to the container to get its intended position
-	container.add_child(domino)
+	#container.add_child(domino)
 	
 	# Calculate the end position based on the number of children in the container
 	var domino_index = container.get_child_count() - 1
@@ -293,9 +325,19 @@ func animate_domino(domino, container: HBoxContainer):
 	domino.rect_position = start_position
 	
 	# Show the domino and animate it to its position in the container
-	var tween = container.get_parent().get_node("Tween")
-	tween.interpolate_property(domino, "rect_position", start_position, end_position, 1.0, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+	var delay = 1.0
+	tween.interpolate_property(domino, "rect_position", start_position, end_position, delay, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
 	tween.interpolate_property(domino, "modulate:a", 0, 1, 0.1, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
 	tween.start()
+
+	yield(get_tree().create_timer(delay), "timeout") # Wait for the animation to finish
+	update_domino_highlights() # Update the highlights of the dominos in the player's hand
 	
 	#domino.visible = true
+
+func update_domino_highlights():
+	#print("Updating domino highlights...")
+	for domino in player_hand.get_children():
+		if domino is DominoContainer:
+			var can_be_played = domino.can_play(last_played_number, player, enemy)
+			domino.update_highlight(can_be_played != "unplayable" && can_be_played != "prohibited")

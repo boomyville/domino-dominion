@@ -5,6 +5,7 @@ func _init(battler_name: String = "Enemy", hp: int = 50, max_hp: int = 50, shiel
 
 func _ready():
 	self.hp_gauge = get_node("/root/Main/GUIContainer/EnemyHP")
+	self.effect_text = get_node("/root/Main/GUIContainer/EnemyEffects")
 	self.shield_text = get_node("/root/Main/GUIContainer/EnemyShields")
 	update()
 

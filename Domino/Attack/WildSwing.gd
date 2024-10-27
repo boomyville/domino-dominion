@@ -7,4 +7,7 @@ func _init():
 
 func effect(origin, target):
 	.effect(origin, target)
-	attack_message(origin, target, target.damage(5))
+	attack_message(origin, target, target.damage(origin, 5))
+	var effect =  load("res://Effect/Vulnerable.gd").new()
+	effect.duration = 1
+	apply_effect(effect, origin)

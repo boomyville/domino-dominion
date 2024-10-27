@@ -13,9 +13,21 @@ _global_script_classes=[ {
 "class": "DominoContainer",
 "language": "GDScript",
 "path": "res://Domino/DominoContainer.gd"
+}, {
+"base": "Resource",
+"class": "Effects",
+"language": "GDScript",
+"path": "res://Effect/Effects.gd"
+}, {
+"base": "Node",
+"class": "Main",
+"language": "GDScript",
+"path": "res://Game.gd"
 } ]
 _global_script_class_icons={
-"DominoContainer": ""
+"DominoContainer": "",
+"Effects": "",
+"Main": ""
 }
 
 [application]

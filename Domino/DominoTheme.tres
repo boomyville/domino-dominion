@@ -4,7 +4,7 @@
 [ext_resource path="res://Domino/WhiteStyleBox.tres" type="StyleBox" id=2]
 [ext_resource path="res://Domino/GreyStyleBox.tres" type="StyleBox" id=3]
 [ext_resource path="res://Domino/FocusStyleBox.tres" type="StyleBox" id=4]
-[ext_resource path="res://Font.tres" type="DynamicFont" id=5]
+[ext_resource path="res://Fonts/Micro.fnt" type="BitmapFont" id=5]
 
 [resource]
 Button/colors/font_color = Color( 0, 0, 0, 1 )

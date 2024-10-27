@@ -8,6 +8,9 @@ var user: String = "none"
 var domino_name = ""
 var is_mouse_in_container = false
 var battle_text;
+var shader_material_left: ShaderMaterial
+var shader_material_right: ShaderMaterial
+var shader_material_domino: ShaderMaterial
 signal domino_pressed(domino_container)
 
 var dot_images = {
@@ -46,7 +49,7 @@ func get_numbers() -> Array:
 # Update the buttons to show the domino numbers
 func update_domino():
 
-	$Label.text = self.domino_name
+	$DominoLabel/Label.text = self.domino_name
 
 	if(number1 >= -1):
 		#$HBoxContainer/LeftTile.text = str(number1) # Update Button1 to show number1
@@ -76,7 +79,6 @@ func update_domino():
 			#$HBoxContainer/LeftTile.modulate = Color(1, 0.5, 0.5, 1) # Red color for enemy
 			#$HBoxContainer/RightTile.modulate = Color(1, 0.5, 0.5, 1) # Red color for enemy
 
-
 func set_clickable(clickable: bool):
 	$HBoxContainer/LeftTile.disabled = not clickable # Disable Button1 if not clickable
 	$HBoxContainer/RightTile.disabled = not clickable # Disable Button2 if not clickable
@@ -95,35 +97,21 @@ func get_non_matching_values(arr: Array, value: int) -> Array:
 	return non_matching_values
 
 func can_play(last_played_number: int, user, target, pressed_number: int = get_numbers()[0]) -> String:
-	# playable
-	# swap
-	# unplayable
-	# prohibited
-
-	# Check if pressed number is playable
-	if(requirements(user, target) == false):
-		return "prohibited"
-
-	elif(pressed_number == last_played_number || pressed_number  == -1 || last_played_number == -1):
-		if(get_numbers()[0] == pressed_number):
-			print("Play: " + str(get_numbers()[0]), " | ", pressed_number)
-			return "playable"
-		else:
-			print("swapping pressed domino")
-			return "swap"
+	var result = "unplayable"
 	
-	# Check if first number is playable
+	if(requirements(user, target) == false):
+		result = "prohibited"
+	elif(pressed_number == last_played_number || pressed_number == -1 || last_played_number == -1):
+		if(get_numbers()[0] == pressed_number):
+			result = "playable"
+		else:
+			result = "swap"
 	elif(get_numbers()[0] == -1 || get_numbers()[0] == last_played_number):
-		print("first number matches")
-		return "playable"
-
-	# Check if second number is playable
+		result = "playable"
 	elif(get_numbers()[1] == -1 || get_numbers()[1] == last_played_number):
-		print("second number matches, swapping")
-		return "swap"
-	else:
-		#print("Unplayable")
-		return "unplayable"
+		result = "swap"
+	
+	return result
 
 func swap_values():
 	var temp = number1
@@ -134,23 +122,49 @@ func swap_values():
 
 # Called when the node enters the scene tree for the first time
 func _ready():
+	shader_material_left = ShaderMaterial.new()
+	shader_material_right = ShaderMaterial.new()
+	shader_material_domino = ShaderMaterial.new()
+
+	var shader = load("res://Domino/domino_shader.gdshader")
+	shader_material_left.shader = shader
+	shader_material_right.shader = shader
+	shader_material_domino.shader = shader
+	
+	# Set initial parameters
+	shader_material_left.set_shader_param("outline_enabled", false)
+	shader_material_right.set_shader_param("outline_enabled", false)
+	shader_material_domino.set_shader_param("outline_enabled", false)
+	shader_material_left.set_shader_param("outline_color", Color(1.0, 0.0, 0.0, 1.0))
+	shader_material_right.set_shader_param("outline_color", Color(1.0, 0.0, 0.0, 1.0))
+	shader_material_domino.set_shader_param("outline_color", Color(0.0, 1.0, 0.0, 1.0))
+	
+	$HBoxContainer/LeftTile.material = shader_material_left
+	$HBoxContainer/RightTile.material = shader_material_right
+	$Node2D/TextureRect.material = shader_material_domino
 	
 	$HBoxContainer/LeftTile.rect_min_size = Vector2(48, 48)
 	$HBoxContainer/RightTile.rect_min_size = Vector2(48,48)
 	$HBoxContainer/LeftTile.connect("pressed", self, "_on_left_button_pressed") # Connect HBoxContainer/LeftTile button
 	$HBoxContainer/RightTile.connect("pressed", self, "_on_right_button_pressed") # Connect HBoxContainer/RightTile button
 
-	for child in get_children():
-		if child is Button:
-			child.mouse_filter = Control.MOUSE_FILTER_PASS
-		
-	connect("mouse_entered", self, "_on_mouse_enter") # Connect HBoxContainer/LeftTile button
-	connect("mouse_exited", self, "_on_mouse_exit") # Connect HBoxContainer/LeftTile button
+	$HBoxContainer/RightTile.connect("mouse_entered", self, "_on_button_hovered", [$HBoxContainer/RightTile])
+	$HBoxContainer/RightTile.connect("mouse_exited", self, "_on_button_hover_exited", [$HBoxContainer/RightTile])
+
+	$HBoxContainer/LeftTile.connect("mouse_entered", self, "_on_button_hovered", [$HBoxContainer/LeftTile])
+	$HBoxContainer/LeftTile.connect("mouse_exited", self, "_on_button_hover_exited", [$HBoxContainer/LeftTile])
+
+	$Node2D/TextureRect.connect("mouse_entered", self, "_on_domino_mouse_entered")
+	$Node2D/TextureRect.connect("mouse_exited", self, "_on_domino_mouse_exited")
 
 	update_domino()
-	#update_domino() # Ensure numbers are shown when the domino is created
-
+	
 	battle_text = get_node("/root/Main/GUIContainer/BattleText")
+
+# Highlight based on playability
+func update_highlight(can_play: bool):
+	if(self.user == "player"):
+		$Node2D/TextureRect.material.set_shader_param("outline_enabled", can_play)
 
 func random_value():
 	return randi() % 6 + 1
@@ -163,6 +177,36 @@ func _on_left_button_pressed():
 func _on_right_button_pressed():
 	emit_signal("domino_pressed", self, number2) # Emit signal with number2 and self (domino container)
 
+# Handle mouse enter - turn outline on
+func _on_button_hovered(button: TextureButton):
+	var material = button.material as ShaderMaterial
+	if material and self.user == "player":
+		material.set_shader_param("outline_enabled", true)
+
+# Handle mouse exit - turn outline off
+func _on_button_hover_exited(button: TextureButton):
+	var material = button.material as ShaderMaterial
+	if material:
+		material.set_shader_param("outline_enabled", false)
+
+# Handle mouse enter of domino - turn outline on
+func _on_domino_mouse_entered():
+	var material = $Node2D/TextureRect.material as ShaderMaterial
+	if material and self.user == "player":
+		pass
+		#material.set_shader_param("outline_enabled", true)
+
+# Handle mouse exit of domino - turn outline off
+func _on_domino_mouse_exited():
+	var material = $Node2D/TextureRect.material as ShaderMaterial
+	if material:
+		pass
+		#material.set_shader_param("outline_enabled", false)
+
+func clear_highlight():
+	$HBoxContainer/LeftTile.material.set_shader_param("outline_enabled", false)
+	$HBoxContainer/RightTile.material.set_shader_param("outline_enabled", false)
+	$Node2D/TextureRect.material.set_shader_param("outline_enabled", false)
 
 func requirements(origin, target):
 	return true
@@ -177,3 +221,5 @@ func attack_message(origin, target, damage):
 func shield_message(origin, target, shield):
 	battle_text.text = origin.name() + " used " + domino_name + " and " + target.name() + " gained " + str(shield) + " shield(s)!"
 
+func apply_effect(effect, target):
+	target.apply_effect(effect)

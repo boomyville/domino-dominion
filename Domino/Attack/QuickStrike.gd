@@ -7,7 +7,7 @@ func _init():
 
 func effect(origin, target):
 	.effect(origin, target)
-	attack_message(origin, target, target.damage(7))
+	attack_message(origin, target, target.damage(origin, 7))
 
 func requirements(origin, target):
 	print(origin.dominos_played_this_turn)
