@@ -15,5 +15,5 @@ Inspirations:
 - GMTK Game Jam 2022
 - Pokemon TCG
 
-![Demo](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/23October2024.gif?raw=true)
+![Demo](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/28October2024.gif?raw=true)
 
