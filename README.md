@@ -14,6 +14,7 @@ Inspirations:
 - Slay the Spire
 - GMTK Game Jam 2022
 - Pokemon TCG
+- Pokemon Scarlet/Violet
 
 Current build:
 
