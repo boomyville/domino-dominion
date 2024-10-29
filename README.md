@@ -14,6 +14,11 @@ Inspirations:
 - Slay the Spire
 - GMTK Game Jam 2022
 - Pokemon TCG
+- Pokemon Scarlet/Violet
 
-![Demo](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/23October2024.gif?raw=true)
+Current build:
 
+![Demo](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/28October2024.gif?raw=true)
+
+First build:
+![First Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/11October2024.gif?raw=true)
