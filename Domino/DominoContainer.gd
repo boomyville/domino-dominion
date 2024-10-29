@@ -11,7 +11,9 @@ var battle_text;
 var shader_material_left: ShaderMaterial
 var shader_material_right: ShaderMaterial
 var shader_material_domino: ShaderMaterial
+var selected: bool = false
 signal domino_pressed(domino_container)
+signal pre_effect_complete
 
 var dot_images = {
 	-1: preload("res://Domino/-1_dots.png"),
@@ -24,6 +26,25 @@ var dot_images = {
 	6: preload("res://Domino/6_dots.png")
 }
 
+# Add this function in your DominoContainer script
+func shadow_copy() -> DominoContainer:
+	var duplicate_instance = self.duplicate()
+	
+	# Copy each custom property
+	duplicate_instance.number1 = self.number1
+	duplicate_instance.number2 = self.number2
+	duplicate_instance.user = self.user
+	duplicate_instance.domino_name = self.domino_name
+	duplicate_instance.is_mouse_in_container = self.is_mouse_in_container
+	duplicate_instance.battle_text = self.battle_text
+	duplicate_instance.shader_material_left = self.shader_material_left
+	duplicate_instance.shader_material_right = self.shader_material_right
+	duplicate_instance.shader_material_domino = self.shader_material_domino
+	
+	return duplicate_instance
+
+func check_shadow_match(domino: DominoContainer) -> bool:
+	return self.number1 == domino.number1 && self.number2 == domino.number2 && domino.user == self.user && domino.domino_name == self.domino_name
 
 # Function to set the numbers of the domino
 # -1 represents a wild domino (equals the last played domino number)
@@ -32,12 +53,12 @@ func set_numbers(n1: int, n2: int, owner: String = ""):
 	self.number1 = n1
 	self.number2 = n2
 	if owner != "":
-		self.user = owner
+		self.user = owner.to_upper()
 	print("Setting numbers: " + str(n1) + ", " + str(n2))
 	update_domino()
 
 func set_user(owner: String):
-	self.user = owner
+	self.user = owner.to_upper()
 	update_domino()
 
 func get_user() -> String:
@@ -67,7 +88,7 @@ func update_domino():
 	#elif(number2 == -1):
 		#$HBoxContainer/RightTile.text = "W"
 
-	if(get_user() == "board" or get_user() == "enemy"):
+	if(get_user().to_upper() == "BOARD" or get_user().to_upper() == "ENEMY"):
 		set_clickable(false)
 	else:
 		set_clickable(true)
@@ -99,7 +120,9 @@ func get_non_matching_values(arr: Array, value: int) -> Array:
 func can_play(last_played_number: int, user, target, pressed_number: int = get_numbers()[0]) -> String:
 	var result = "unplayable"
 	
-	if(requirements(user, target) == false):
+	if Game.get_node("Game").game_state != Game.get_node("Game").GameState.DEFAULT:
+		return result
+	elif(requirements(user, target) == false):
 		result = "prohibited"
 	elif(pressed_number == last_played_number || pressed_number == -1 || last_played_number == -1):
 		if(get_numbers()[0] == pressed_number):
@@ -110,7 +133,6 @@ func can_play(last_played_number: int, user, target, pressed_number: int = get_n
 		result = "playable"
 	elif(get_numbers()[1] == -1 || get_numbers()[1] == last_played_number):
 		result = "swap"
-	
 	return result
 
 func swap_values():
@@ -159,11 +181,10 @@ func _ready():
 
 	update_domino()
 	
-	battle_text = get_node("/root/Main/GUIContainer/BattleText")
 
 # Highlight based on playability
 func update_highlight(can_play: bool):
-	if(self.user == "player"):
+	if(self.user.to_upper() == "PLAYER"):
 		$Node2D/TextureRect.material.set_shader_param("outline_enabled", can_play)
 
 func random_value():
@@ -180,46 +201,49 @@ func _on_right_button_pressed():
 # Handle mouse enter - turn outline on
 func _on_button_hovered(button: TextureButton):
 	var material = button.material as ShaderMaterial
-	if material and self.user == "player":
+	var material2 = $Node2D/TextureRect.material as ShaderMaterial
+	if material and self.user.to_upper() == "PLAYER" and Game.get_node("Game").game_state_default():
 		material.set_shader_param("outline_enabled", true)
+	elif(material2 and self.user.to_upper() == "PLAYER" and Game.get_node("Game").is_selection()):
+		material2.set_shader_param("outline_enabled", true)
 
 # Handle mouse exit - turn outline off
 func _on_button_hover_exited(button: TextureButton):
 	var material = button.material as ShaderMaterial
-	if material:
+	var material2 = $Node2D/TextureRect.material as ShaderMaterial
+	if material and Game.get_node("Game").game_state_default():
 		material.set_shader_param("outline_enabled", false)
+	elif(material2 and Game.get_node("Game").is_selection() && !selected):
+		material2.set_shader_param("outline_enabled", false)
 
-# Handle mouse enter of domino - turn outline on
-func _on_domino_mouse_entered():
-	var material = $Node2D/TextureRect.material as ShaderMaterial
-	if material and self.user == "player":
-		pass
-		#material.set_shader_param("outline_enabled", true)
-
-# Handle mouse exit of domino - turn outline off
-func _on_domino_mouse_exited():
-	var material = $Node2D/TextureRect.material as ShaderMaterial
-	if material:
-		pass
-		#material.set_shader_param("outline_enabled", false)
 
 func clear_highlight():
 	$HBoxContainer/LeftTile.material.set_shader_param("outline_enabled", false)
 	$HBoxContainer/RightTile.material.set_shader_param("outline_enabled", false)
 	$Node2D/TextureRect.material.set_shader_param("outline_enabled", false)
 
+func set_clicked(clicked: bool):
+	selected = clicked
+	if(clicked):
+		$Node2D/TextureRect.material.set_shader_param("outline_enabled", true)
+		shader_material_domino.set_shader_param("outline_color", Color(1.0, 1.0, 0.0, 1.0))
+	else:
+		$Node2D/TextureRect.material.set_shader_param("outline_enabled", false)
+		shader_material_domino.set_shader_param("outline_color", Color(0.0, 1.0, 0.0, 1.0))
+
 func requirements(origin, target):
 	return true
+	#print("Origin: ", origin, " | Domino: ", domino_name)
 
 func effect(origin, target):
 	origin.dominos_played.append(self)
 	origin.dominos_played_this_turn.append(self)
 
 func attack_message(origin, target, damage):
-	battle_text.text = origin.name() + " used " + domino_name + " on " + target.name() + " for " + str(damage) + " damage!"
+	Game.get_node("Game").update_battle_text(origin.name() + " used " + domino_name + " on " + target.name() + " for " + str(damage) + " damage!")
 
 func shield_message(origin, target, shield):
-	battle_text.text = origin.name() + " used " + domino_name + " and " + target.name() + " gained " + str(shield) + " shield(s)!"
+	Game.get_node("Game").update_battle_text(origin.name() + " used " + domino_name + " and " + target.name() + " gained " + str(shield) + " shield(s)!")
 
 func apply_effect(effect, target):
 	target.apply_effect(effect)

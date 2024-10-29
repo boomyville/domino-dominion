@@ -10,24 +10,46 @@ onready var enemy_hand = get_node("../GameBoard/EnemyHand") # AI's hand containe
 onready var play_board = get_node("../GameBoard/PlayBoard") # Play field container
 onready var end_turn_button = get_node("../GameBoard/EndTurn") # Button for ending turn
 onready var battle_text = get_node("../GUIContainer/BattleText")
+onready var debug_text = get_node("../GUIContainer/DebugText")
 onready var tween = get_node("../GameBoard/Tween")
 var player_scene = preload("res://Battlers/Player/Player.tscn")
 var enemy_scene = preload("res://Battlers/Enemy/Enemy.tscn")
 
 var player
 var enemy
-
-# Domino data
-var player_pile = []
-var enemy_pile = []
+var turns
 
 var last_played_number = -1 # The number to match for the next move
 var player_turn = true # Keep track of whose turn it is
+
+enum GameState {
+	DEFAULT,
+	DISCARD_SELECTION,
+	PILE_SELECTION,
+	HAND_SELECTION,
+	VOID_SELECTION,
+	INACTIVE
+}
+var game_state = GameState.DEFAULT
+
+const GAME_STATE_STRINGS = {
+	GameState.DEFAULT: "Default",
+	GameState.DISCARD_SELECTION: "Discard Selection",
+	GameState.PILE_SELECTION: "Pile Selection",
+	GameState.HAND_SELECTION: "Hand Selection",
+	GameState.VOID_SELECTION: "Void Selection",
+	GameState.INACTIVE: "Inactive"
+}
+
+func get_game_state_string() -> String:
+	return GAME_STATE_STRINGS[game_state]
+
 
 #=====================================================
 # Initialisation
 #=====================================================
 func _ready():
+	
 	randomize() # Initialize random number generator
 
 	initialize_units() # Initialize the player and AI units
@@ -42,20 +64,25 @@ func _ready():
 func initialize_units():
 	player = player_scene.instance()
 	add_child(player)
+	player.connect("hand_discard", self, "_on_hand_discard")
 
 	enemy = enemy_scene.instance()
 	add_child(enemy)
 	
 func initialize_battle():
-	# Initialize the battle with player and AI
-	player_pile = player.get_deck()
-	player_pile.shuffle()
-	enemy_pile = enemy.get_deck()
-	enemy_pile.shuffle()
-	for domino in player_pile:
+	player.initialize_deck()
+	enemy.initialize_deck()
+	for domino in player.get_draw_pile():
 		domino.connect("domino_pressed", self, "_on_domino_pressed") # Connect the signal
 	draw_player_hand(player.get_initial_draw())
 	draw_enemy_hand(enemy.get_initial_draw())
+	turns = 1
+
+func _on_hand_discard(domino):
+	if(domino.user == "player"):
+		player_hand.remove(domino)
+	elif(domino.user == "enemy"):
+		enemy_hand.remove(domino)
 
 # Draw the first domino on the play field (determined by dice roll)
 func draw_first_domino():
@@ -71,22 +98,25 @@ func draw_first_domino():
 
 # Handle the event when a player plays a domino
 func _on_domino_pressed(domino_container: DominoContainer, pressed_number: int):
-	if player_turn:
+	print("Domino pressed: " + str(pressed_number))
+	if player_turn && game_state == GameState.DEFAULT:
 		play_domino(domino_container, pressed_number)
+	elif player_turn && game_state != GameState.DEFAULT:
+		print("Invalid move. You must complete the current action first.")
 	else:
 		print("It's not your turn!")
 
 func play_domino(domino_container: DominoContainer, pressed_number: int):
 	var user
 	var target;
-	if(domino_container.get_user() == "player"):
+	if(domino_container.get_user().to_upper() == "PLAYER"):
 		user = player
 		target = enemy
-	elif(domino_container.get_user() == "enemy"):
+	elif(domino_container.get_user().to_upper() == "ENEMY"):
 		target = player
 		user = enemy
 	
-	var result = domino_container.can_play(last_played_number,  user, target, pressed_number)
+	var result = domino_container.can_play(last_played_number, user, target, pressed_number)
 	# Check if the domino can be played (if either number matches the last played number)
 	if result == "playable":
 		move_domino_to_playfield(domino_container)
@@ -94,18 +124,18 @@ func play_domino(domino_container: DominoContainer, pressed_number: int):
 		domino_container.swap_values()
 		move_domino_to_playfield(domino_container)
 	elif result == "unplayable":
-		battle_text.text = "Invalid move. You can only play dominos that match the last number."
+		update_battle_text("Invalid move. You can only play dominos that match the last number.")
 	elif result == "prohibited":
-		battle_text.text = "Invalid move. Conditions do not meet requirements."
+		update_battle_text("Invalid move. Conditions do not meet requirements.")
 
 # Move a valid domino to the play field and disable its buttons
 func move_domino_to_playfield(domino_container):
 	
 	domino_container.clear_highlight()
 	# Damage
-	if domino_container.get_user() == "player":
+	if domino_container.get_user().to_upper() == "PLAYER":
 		domino_container.effect(player, enemy)
-	elif domino_container.get_user() == "enemy":
+	elif domino_container.get_user().to_upper() == "ENEMY":
 		domino_container.effect(enemy, player)
 
 	var start_position = domino_container.get_global_position()
@@ -159,6 +189,48 @@ func set_played_number(number: int):
 	last_played_number = number
 	update_domino_highlights() # Update the highlights of the dominos in the player's hand
 
+
+#=====================================================
+# Domino manipulation selection
+#=====================================================
+# Trigger discard selection from the special domino effect
+
+func trigger_discard_selection(minimum_discards: int, maximum_discards: int, origin_domino: DominoContainer = null, target: String = "PLAYER", collection: String = "HAND"):
+	var targetted_collection
+	
+	if(target.to_upper() == "PLAYER"):
+		targetted_collection = player_hand
+	elif(target.to_upper() == "ENEMY"):
+		targetted_collection = enemy_hand
+	else:
+		print("Invalid target for discard selection.")
+		return
+	
+	if(targetted_collection.get_children().size() == 0):
+		print("Not enough dominos to discard.")
+		return
+	elif(targetted_collection.get_children().size() == 1 && collection.to_upper() == "HAND"):
+		print("Only domino in hand is played domino... not enough dominos to discard.")
+		return
+	else:
+		game_state = GameState.DISCARD_SELECTION
+		var discard_popup = preload("res://SelectionPopup.tscn").instance()
+		add_child(discard_popup)
+		discard_popup.setup_discard_popup(targetted_collection, minimum_discards, maximum_discards, origin_domino, target, collection)
+		discard_popup.popup_centered()
+
+func process_discard(selected_dominos: Array):
+	print ("Processing discard selection...", get_game_state_string())
+	if game_state == GameState.DISCARD_SELECTION:
+		for domino in selected_dominos:
+			player.add_to_discard_pile(domino, "hand")
+		game_state = GameState.DEFAULT
+
+func is_selection() -> bool:
+	return game_state != GameState.DEFAULT || game_state != GameState.INACTIVE
+
+func game_state_default() -> bool:
+	return game_state == GameState.DEFAULT
 
 #=====================================================
 # Turn End and AI Turn
@@ -215,7 +287,8 @@ func enemy_start_turn():
 	enemy_end_turn()  # End the AI's turn
 
 func player_start_turn():
-	
+
+	turns +=1
 	player_turn = true
 	end_turn_button.disabled = false  # Enable the end turn button
 
@@ -234,33 +307,32 @@ func player_start_turn():
 
 # Check if the game is over
 func check_game_over():
-	if player_pile.size() == 0:
-		print("Player loses! No more dominos to draw.")
+	if player.get_draw_pile().size() == 0:
+		update_battle_text("Player loses! No more dominos to draw.")
 		end_turn_button.set_text("Player loses!")
 		end_turn_button.disabled = true
+		game_state = GameState.INACTIVE
 		return true
-	elif enemy_pile.size() == 0:
-		print("Enemy loses! No more dominos to draw.")
+	elif enemy.get_draw_pile().size() == 0:
+		update_battle_text("Enemy loses! No more dominos to draw.")
 		end_turn_button.set_text("Enemy loses!")
 		end_turn_button.disabled = true
+		game_state = GameState.INACTIVE
 		return true
 	elif(player.hp <= 0):
 		print("Player loses! HP is 0.")
-		end_turn_button.set_text("Player loses!")
+		update_battle_text("Player loses!")
 		end_turn_button.disabled = true
+		game_state = GameState.INACTIVE
 		return true
 	elif(enemy.hp <= 0):
 		print("Enemy loses! HP is 0.")
-		end_turn_button.set_text("Enemy is defeated!")
+		update_battle_text("Enemy is defeated!")
 		end_turn_button.disabled = true
-		return true
-	elif(enemy.hp <= 0):
-		print("Enemy loses! HP is 0.")
-		end_turn_button.set_text("Enemy loses!")
-		end_turn_button.disabled = true
+		game_state = GameState.INACTIVE
 		return true
 	else:
-		print("Game continues...")
+		update_battle_text("Game continues... Turn " + str(turns + 1))
 		return false
 
 #=====================================================
@@ -272,8 +344,8 @@ func draw_player_hand(count: int):
 	print("Drawing " + str(count) + " dominos for the player...")
 	var drawn_dominos = []
 	for _i in range(count):
-		if player_pile.size() > 0:
-			drawn_dominos.append(player_pile.pop_back()) # Take a domino from the end of the pile
+		if player.get_draw_pile().size() > 0:
+			drawn_dominos.append(player.draw_pile.pop_back()) # Take a domino from the end of the pile
 		else:
 			print("No more dominos in the pile!")
 			check_game_over() # Check if the game is over
@@ -292,8 +364,8 @@ func draw_enemy_hand(count: int):
 	print("Drawing " + str(count) + " dominos for the enemy...")
 	var drawn_dominos = []
 	for _i in range(count):
-		if enemy_pile.size() > 0:
-			drawn_dominos.append(enemy_pile.pop_back()) # Take a domino from the end of the pile
+		if enemy.get_draw_pile().size() > 0:
+			drawn_dominos.append(enemy.draw_pile.pop_back()) # Take a domino from the end of the pile
 		else:
 			print("No more dominos in the pile!")
 			check_game_over() # Check if the game is over
@@ -334,6 +406,16 @@ func animate_domino(domino, container: HBoxContainer):
 	update_domino_highlights() # Update the highlights of the dominos in the player's hand
 	
 	#domino.visible = true
+
+
+#=====================================================
+# UI
+#=====================================================
+
+func update_battle_text(text: String):
+	battle_text.text = text
+	print(get_game_state_string())
+	debug_text.text = get_game_state_string()
 
 func update_domino_highlights():
 	#print("Updating domino highlights...")

@@ -1,4 +1,4 @@
-extends "res://Domino/DominoContainer.gd"
+extends DominoContainer
 
 func _init():
 	number1 = 0

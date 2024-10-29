@@ -10,8 +10,7 @@ func effect(origin, target):
 	attack_message(origin, target, target.damage(origin, 7))
 
 func requirements(origin, target):
-	print(origin.dominos_played_this_turn)
 	if origin.dominos_played_this_turn.size() > 0:
 		return false
 	else:
-		return true
+		return true	

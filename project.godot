@@ -33,12 +33,16 @@ _global_script_class_icons={
 [application]
 
 config/name="Domino Dominion"
-run/main_scene="res://Main.tscn"
+run/main_scene="res://Title.tscn"
 config/icon="res://icon.png"
+
+[autoload]
+
+Game="*res://Main.tscn"
 
 [global]
 
-autoload=false
+autoload=true
 
 [gui]
 

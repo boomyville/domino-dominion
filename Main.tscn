@@ -41,13 +41,19 @@ text = "End Turn"
 [node name="Tween" type="Tween" parent="GameBoard"]
 
 [node name="GUIContainer" type="GridContainer" parent="."]
-margin_top = 530.0
+margin_top = 520.0
 margin_right = 1025.0
-margin_bottom = 600.0
-columns = 3
+margin_bottom = 591.0
+columns = 5
+
+[node name="Spacer" type="Control" parent="GUIContainer"]
+margin_right = 80.0
+margin_bottom = 24.0
+rect_min_size = Vector2( 80, 24 )
 
 [node name="PlayerHP" type="ProgressBar" parent="GUIContainer"]
-margin_right = 400.0
+margin_left = 84.0
+margin_right = 484.0
 margin_bottom = 24.0
 grow_horizontal = 2
 grow_vertical = 2
@@ -63,23 +69,36 @@ theme = ExtResource( 5 )
 align = 1
 
 [node name="PlayerShields" type="Label" parent="GUIContainer"]
-margin_left = 404.0
+margin_left = 488.0
 margin_top = 4.0
-margin_right = 443.0
+margin_right = 527.0
 margin_bottom = 19.0
 theme = ExtResource( 5 )
 text = "Shield"
 
 [node name="PlayerEffects" type="Label" parent="GUIContainer"]
-margin_left = 447.0
+margin_left = 531.0
 margin_top = 4.0
-margin_right = 447.0
+margin_right = 531.0
 margin_bottom = 19.0
 theme = ExtResource( 5 )
 
-[node name="EnemyHP" type="ProgressBar" parent="GUIContainer"]
+[node name="Spacer2" type="Control" parent="GUIContainer"]
+margin_left = 535.0
+margin_right = 615.0
+margin_bottom = 24.0
+rect_min_size = Vector2( 80, 24 )
+
+[node name="Spacer3" type="Control" parent="GUIContainer"]
 margin_top = 28.0
-margin_right = 400.0
+margin_right = 80.0
+margin_bottom = 52.0
+rect_min_size = Vector2( 80, 24 )
+
+[node name="EnemyHP" type="ProgressBar" parent="GUIContainer"]
+margin_left = 84.0
+margin_top = 28.0
+margin_right = 484.0
 margin_bottom = 52.0
 rect_min_size = Vector2( 400, 24 )
 percent_visible = false
@@ -93,24 +112,44 @@ theme = ExtResource( 5 )
 align = 1
 
 [node name="EnemyShields" type="Label" parent="GUIContainer"]
-margin_left = 404.0
+margin_left = 488.0
 margin_top = 32.0
-margin_right = 443.0
+margin_right = 527.0
 margin_bottom = 47.0
 theme = ExtResource( 5 )
 text = "Shield"
 
 [node name="EnemyEffects" type="Label" parent="GUIContainer"]
-margin_left = 447.0
+margin_left = 531.0
 margin_top = 32.0
-margin_right = 447.0
+margin_right = 531.0
 margin_bottom = 47.0
 theme = ExtResource( 5 )
 
-[node name="BattleText" type="Label" parent="GUIContainer"]
+[node name="Spacer4" type="Control" parent="GUIContainer"]
+margin_left = 535.0
+margin_top = 28.0
+margin_right = 615.0
+margin_bottom = 52.0
+
+[node name="Spacer5" type="Control" parent="GUIContainer"]
 margin_top = 56.0
-margin_right = 400.0
+margin_right = 80.0
+margin_bottom = 71.0
+
+[node name="BattleText" type="Label" parent="GUIContainer"]
+margin_left = 84.0
+margin_top = 56.0
+margin_right = 484.0
 margin_bottom = 71.0
 theme = ExtResource( 5 )
 text = "Battle!"
 clip_text = true
+
+[node name="DebugText" type="Label" parent="GUIContainer"]
+margin_left = 488.0
+margin_top = 56.0
+margin_right = 527.0
+margin_bottom = 71.0
+theme = ExtResource( 5 )
+text = "Debug"

@@ -12,6 +12,9 @@ var deck: Array
 var hp_gauge
 var effect_text
 var shield_text
+var draw_pile: Array
+var discard_pile: Array
+var void_space: Array
 
 var dominos_played: Array
 var dominos_played_this_turn: Array
@@ -33,6 +36,8 @@ func _init(battler_name: String = "Battler", hp: int = 50, max_hp: int = 50, shi
 	self.dominos_played = []
 	self.dominos_played_this_turn = []
 	self.effects = []
+	self.void_space = []
+	self.discard_pile = []
 
 	set_hp(max_hp)
 	initialize_deck()
@@ -40,8 +45,109 @@ func _init(battler_name: String = "Battler", hp: int = 50, max_hp: int = 50, shi
 func name():
 	return self.battler_name
 
+func remove_domino(collection, domino: DominoContainer):
+	# Locate the matching domino in the collection
+	for user_dominos in collection.get_children():
+		if user_dominos.check_shadow_match(domino):
+			# Disable interactions for the domino being removed
+			user_dominos.set_block_signals(true)
+
+			# Add a tween to animate the removal
+			var tween = Game.get_node("Game").tween
+			
+			# Set up the fade-out animation
+			tween.interpolate_property(user_dominos, "modulate:a", 1, 0, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+			
+			# Set up the spin animation
+			tween.interpolate_property(user_dominos, "rotation_degrees", 0, 360, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+			
+			# Set up the fall animation (with gravity effect)
+			var start_position = user_dominos.rect_global_position
+			var end_position = start_position + Vector2(0, 400)  # Fall distance
+			tween.interpolate_property(user_dominos, "rect_global_position", start_position, end_position, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN)
+
+			# Start the tween for the removal animation
+			tween.start()
+
+			yield(get_tree().create_timer(0.5), "timeout")  # Wait for the animation to finish
+
+			remove_domino_after_tween(user_dominos, collection)
+			return  # Exit after animating the matched domino
+
+# Callback function to finalize removal and rearrange remaining dominos
+func remove_domino_after_tween(user_domino, collection):
+	# Remove the domino from its collection
+	collection.remove_child(user_domino)
+	
+	# Animate the remaining dominos to slide into their new positions
+	var tween = Game.get_node("Game").tween
+	for i in range(collection.get_child_count()):
+		var remaining_domino = collection.get_child(i)
+		var new_position = Vector2(i * (remaining_domino.get_combined_minimum_size().x + collection.get_constant("separation")), remaining_domino.rect_position.y)
+		tween.interpolate_property(remaining_domino, "rect_position", remaining_domino.rect_position, new_position, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+	
+	# Start the sliding animation for remaining dominos
+	tween.start()
+	yield(get_tree().create_timer(1), "timeout") # Wait for the animation to finish
+
+	Game.get_node("Game").update_domino_highlights()
+	
+func get_draw_pile():
+	return self.draw_pile
+
+func get_discard_pile():
+	return self.discard_pile
+
+func add_to_discard_pile(domino: DominoContainer, type: String = "draw"):
+	self.discard_pile.append(domino)
+	if(type == "void"):
+		self.void_space.erase(domino)
+	elif type == "draw":
+		self.draw_pile.erase(domino)
+	elif type == "hand":
+		if(self.battler_name == "Player"):
+			remove_domino(Game.get_node("Game").player_hand, domino)
+		elif(self.battler_name == "Enemy"):
+			remove_domino(Game.get_node("Game").enemy_hand, domino)
+		
+
+func add_to_void_space(domino: DominoContainer, type: String = "draw"):
+	self.void_space.append(domino)
+	if(type == "discard"):
+		self.discard_pile.erase(domino)
+	elif type == "draw":
+		self.draw_pile.erase(domino)
+	elif type == "hand":
+		if(self.battler_name == "Player"):
+			remove_domino(Game.get_node("Game").player_hand, domino)
+		elif(self.battler_name == "Enemy"):
+			remove_domino(Game.get_node("Game").enemy_hand, domino)
+			Game.get_node("Game").enemy_hand.erase(domino)
+
+func add_to_draw_pile(domino: DominoContainer, type: String = "draw"):
+	self.draw_pile.append(domino)
+	if(type == "discard"):
+		self.discard_pile.erase(domino)
+	elif type == "void":
+		self.void_space.erase(domino)
+	elif type == "hand":
+		if(self.battler_name == "Player"):
+			Game.get_node("Game").player_hand.erase(domino)
+		elif(self.battler_name == "Enemy"):
+			Game.get_node("Game").enemy_hand.erase(domino)
+
+
+func add_to_deck(domino: DominoContainer, type: String):
+	domino.set_user(type)
+	self.deck.append(domino)
+
 func initialize_deck():
-	pass
+	draw_pile = self.get_deck()
+	draw_pile.shuffle()
+	for domino in draw_pile:
+		domino.set_user(battler_name)
+		# domino.connect("domino_pressed", game, "_on_domino_pressed") # Connect the signal
+		# Perform a priori setup for the domino
 
 func get_initial_draw() -> int:
 	return self.initial_draw
@@ -50,13 +156,7 @@ func get_draw_per_turn() -> int:
 	return self.draw_per_turn
 	
 func get_deck():
-	for domino in self.deck:
-		print(domino.get_user(), ": ", domino.get_numbers())
 	return self.deck
-
-func add_to_deck(domino: DominoContainer, type: String):
-	domino.set_user(type)
-	self.deck.append(domino)
 
 #==========================================
 # Effects
