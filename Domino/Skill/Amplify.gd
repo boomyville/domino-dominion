@@ -4,6 +4,7 @@ func _init():
 	number1 = random_value()
 	number2 = random_value()
 	domino_name = "Double Damage"
+	description = "Next" + bb_code_attack() + ": " + bb_code_double()
 
 func effect(origin, target):
 	.effect(origin, target)

@@ -6,14 +6,16 @@ var number1: int = 0
 var number2: int = 0
 var user: String = "none"
 var domino_name = ""
+var description = ""
 var is_mouse_in_container = false
 var battle_text;
 var shader_material_left: ShaderMaterial
 var shader_material_right: ShaderMaterial
 var shader_material_domino: ShaderMaterial
 var selected: bool = false
-signal domino_pressed(domino_container)
+signal domino_pressed
 signal pre_effect_complete
+var description_popup = preload("res://Domino/DominoPopup.tscn")
 
 var dot_images = {
 	-1: preload("res://Domino/-1_dots.png"),
@@ -25,6 +27,40 @@ var dot_images = {
 	5: preload("res://Domino/5_dots.png"),
 	6: preload("res://Domino/6_dots.png")
 }
+
+#================================================================
+# BB code functions
+#================================================================
+
+func bb_code_tile():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/" + str(get_numbers()[0]) + "Tile.png[/img][/font] [font=res://Fonts/VAlign.tres][img]res://Icons/" + str(get_numbers()[1]) + "Tile.png[/img][/font]"
+
+func bb_code_max_tile():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/" + str(max(get_numbers()[0], get_numbers()[1])) + "Tile.png[/img][/font]"
+
+func bb_code_min_tile():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/" + str(min(get_numbers()[0], get_numbers()[1])) + "Tile.png[/img][/font]"
+
+func bb_code_attack():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Attack.png[/img][/font]"
+
+func bb_code_double():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Double.png[/img][/font]"
+
+func bb_code_shield():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Shield.png[/img][/font]"
+
+func bb_code_discard():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Discard.png[/img][/font]"
+
+func bb_code_draw():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Draw.png[/img][/font]"
+
+func bb_code_vulnerable():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Vulnerable.png[/img][/font]"
+
+func bb_code_random():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Random.png[/img][/font]"
 
 # Add this function in your DominoContainer script
 func shadow_copy() -> DominoContainer:
@@ -206,6 +242,8 @@ func _on_button_hovered(button: TextureButton):
 		material.set_shader_param("outline_enabled", true)
 	elif(material2 and self.user.to_upper() == "PLAYER" and Game.get_node("Game").is_selection()):
 		material2.set_shader_param("outline_enabled", true)
+	if(Game.get_node("Game").touch_mode == false):
+		show_domino_description(self)
 
 # Handle mouse exit - turn outline off
 func _on_button_hover_exited(button: TextureButton):
@@ -215,7 +253,9 @@ func _on_button_hover_exited(button: TextureButton):
 		material.set_shader_param("outline_enabled", false)
 	elif(material2 and Game.get_node("Game").is_selection() && !selected):
 		material2.set_shader_param("outline_enabled", false)
-
+	if(Game.get_node("Game").touch_mode == false):
+		if(has_node("DominoPopup")):
+			get_node("DominoPopup").queue_free()
 
 func clear_highlight():
 	$HBoxContainer/LeftTile.material.set_shader_param("outline_enabled", false)
@@ -227,6 +267,7 @@ func set_clicked(clicked: bool):
 	if(clicked):
 		$Node2D/TextureRect.material.set_shader_param("outline_enabled", true)
 		shader_material_domino.set_shader_param("outline_color", Color(1.0, 1.0, 0.0, 1.0))
+		show_domino_description(self)
 	else:
 		$Node2D/TextureRect.material.set_shader_param("outline_enabled", false)
 		shader_material_domino.set_shader_param("outline_color", Color(0.0, 1.0, 0.0, 1.0))
@@ -247,3 +288,49 @@ func shield_message(origin, target, shield):
 
 func apply_effect(effect, target):
 	target.apply_effect(effect)
+
+#================================
+# Description Popup
+#================================
+# Function to handle showing the popup
+func show_domino_description(domino):
+	# Instance the popup and add it to the scene tree
+	var popup = description_popup.instance()
+	add_child(popup)
+	
+	# Set the popup description
+	popup.set_description("[center]" +  domino.description + "[/center]")	
+	
+	# Get the window width
+	var window_width = get_viewport_rect().size.x
+
+	# Calculate the popup's position centered above the domino
+	var popup_position_x = domino.get_global_position().x - (popup.rect_min_size.x - domino.rect_size.x) / 2
+	var popup_position_y = domino.get_global_position().y - popup.rect_min_size.y -  domino.rect_size.y / 2
+
+	# Adjust to keep the popup within the screen bounds
+	popup_position_x = max(0, min(popup_position_x, window_width - popup.rect_min_size.x))
+
+	# Set the popup position
+	popup.rect_global_position = Vector2(popup_position_x, popup_position_y)
+	
+	# Display the popup
+	popup.popup()
+
+#================================================================
+# Domino repositioning
+#================================================================
+
+
+func final_domino_position(position: int, collection):
+	var target_positionX: int
+	var target_positionY: int
+
+	if(collection is GridContainer):
+		target_positionX = position % collection.columns * (self.get_combined_minimum_size().x + collection.get_constant("hseparation"))
+		target_positionY = floor(position / collection.columns) * (self.get_combined_minimum_size().y + collection.get_constant("vseparation"))	
+	else:
+		target_positionX = position * (self.get_combined_minimum_size().x + collection.get_constant("hseparation"))
+		target_positionY = 0
+
+	return Vector2(target_positionX, target_positionY)

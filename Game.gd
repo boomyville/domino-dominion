@@ -4,6 +4,8 @@ class_name Main
 # Load the DominoContainer scene
 onready var DominoContainerScene = preload("res://Domino/Domino.tscn")
 
+export var touch_mode = true # If touch mode is enabled, dominos need to be tapped TWICE to play
+
 # UI elements
 onready var player_hand = get_node("../GameBoard/PlayerHand") # Player's hand container
 onready var enemy_hand = get_node("../GameBoard/EnemyHand") # AI's hand container (non-clickable)
@@ -18,6 +20,7 @@ var enemy_scene = preload("res://Battlers/Enemy/Enemy.tscn")
 var player
 var enemy
 var turns
+
 
 var last_played_number = -1 # The number to match for the next move
 var player_turn = true # Keep track of whose turn it is
@@ -44,6 +47,14 @@ const GAME_STATE_STRINGS = {
 func get_game_state_string() -> String:
 	return GAME_STATE_STRINGS[game_state]
 
+#=====================================================
+# Debug
+#=====================================================
+func _input(event):
+	if event is InputEventKey and event.scancode == KEY_1 and event.pressed:
+		draw_player_hand(1)
+	if event is InputEventKey and event.scancode == KEY_2 and event.pressed:
+		trigger_random_discard_from_hand(null, 1, "PLAYER")
 
 #=====================================================
 # Initialisation
@@ -58,14 +69,13 @@ func _ready():
 
 	end_turn_button.connect("pressed", self, "_on_end_turn_pressed")
 
-	# You may also want to initialize the board with the first domino
+	# Draw the first (board only) domino to start the game
 	draw_first_domino()
 
 func initialize_units():
 	player = player_scene.instance()
 	add_child(player)
-	player.connect("hand_discard", self, "_on_hand_discard")
-
+	
 	enemy = enemy_scene.instance()
 	add_child(enemy)
 	
@@ -77,12 +87,6 @@ func initialize_battle():
 	draw_player_hand(player.get_initial_draw())
 	draw_enemy_hand(enemy.get_initial_draw())
 	turns = 1
-
-func _on_hand_discard(domino):
-	if(domino.user == "player"):
-		player_hand.remove(domino)
-	elif(domino.user == "enemy"):
-		enemy_hand.remove(domino)
 
 # Draw the first domino on the play field (determined by dice roll)
 func draw_first_domino():
@@ -96,15 +100,32 @@ func draw_first_domino():
 # Event handling (Dominos)
 #=====================================================
 
+func _Input(event):
+	if event is InputEventMouseButton and event.button_index == BUTTON_RIGHT and event.pressed :
+		unselect_dominos()
+
+func unselect_dominos():
+	for domino in player_hand.get_children():
+		if domino is DominoContainer:
+			domino.set_clicked(false)
+
 # Handle the event when a player plays a domino
 func _on_domino_pressed(domino_container: DominoContainer, pressed_number: int):
-	print("Domino pressed: " + str(pressed_number))
-	if player_turn && game_state == GameState.DEFAULT:
-		play_domino(domino_container, pressed_number)
-	elif player_turn && game_state != GameState.DEFAULT:
-		print("Invalid move. You must complete the current action first.")
+	
+	if(touch_mode):
+		if(domino_container.selected):
+			play_domino(domino_container, pressed_number)
+		else:
+			unselect_dominos()
+			update_domino_highlights()
+			domino_container.set_clicked(true)
 	else:
-		print("It's not your turn!")
+		if player_turn && game_state == GameState.DEFAULT:
+			play_domino(domino_container, pressed_number)
+		elif player_turn && game_state != GameState.DEFAULT:
+			print("Invalid move. You must complete the current action first.")
+		else:
+			print("It's not your turn!")
 
 func play_domino(domino_container: DominoContainer, pressed_number: int):
 	var user
@@ -132,7 +153,8 @@ func play_domino(domino_container: DominoContainer, pressed_number: int):
 func move_domino_to_playfield(domino_container):
 	
 	domino_container.clear_highlight()
-	# Damage
+
+	# Apply domino effect (such as damage or shielding)
 	if domino_container.get_user().to_upper() == "PLAYER":
 		domino_container.effect(player, enemy)
 	elif domino_container.get_user().to_upper() == "ENEMY":
@@ -168,12 +190,12 @@ func move_domino_to_playfield(domino_container):
 	# Animate the remaining dominos in the player's hand to their new positions
 	for i in range(player_hand.get_child_count()):
 		var remaining_domino = player_hand.get_child(i)
-		var new_position = Vector2(i * (remaining_domino.get_combined_minimum_size().x + player_hand.get_constant("separation")), remaining_domino.rect_position.y)
+		var new_position = remaining_domino.final_domino_position(i, player_hand)
 		tween.interpolate_property(remaining_domino, "rect_position", remaining_domino.rect_position, new_position, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
 	
 	for i in range(enemy_hand.get_child_count()):
 		var remaining_domino = enemy_hand.get_child(i)
-		var new_position = Vector2(i * (remaining_domino.get_combined_minimum_size().x + enemy_hand.get_constant("separation")), remaining_domino.rect_position.y)
+		var new_position = remaining_domino.final_domino_position(i, enemy_hand)
 		tween.interpolate_property(remaining_domino, "rect_position", remaining_domino.rect_position, new_position, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
 	
 	tween.start()
@@ -195,16 +217,37 @@ func set_played_number(number: int):
 #=====================================================
 # Trigger discard selection from the special domino effect
 
-func trigger_discard_selection(minimum_discards: int, maximum_discards: int, origin_domino: DominoContainer = null, target: String = "PLAYER", collection: String = "HAND"):
-	var targetted_collection
-	
+func get_target_collection(target: String) -> HBoxContainer:
 	if(target.to_upper() == "PLAYER"):
-		targetted_collection = player_hand
+		return player_hand
 	elif(target.to_upper() == "ENEMY"):
-		targetted_collection = enemy_hand
+		return enemy_hand
 	else:
 		print("Invalid target for discard selection.")
+		return null
+
+func trigger_random_discard_from_hand(current_domino, discards: int, target: String):
+	var targetted_collection = get_target_collection(target)
+	
+	if(targetted_collection.get_children().size() == 0):
+		print("Not enough dominos to discard.")
 		return
+	else:
+		var dominos_to_discard = targetted_collection.get_children().duplicate()
+
+		if(current_domino in dominos_to_discard):
+			dominos_to_discard.erase(current_domino)
+
+		dominos_to_discard.shuffle()
+
+		dominos_to_discard.resize(discards)
+
+		for domino in dominos_to_discard:
+			player.add_to_discard_pile(domino, "hand")
+			update_battle_text("Randomly discarded " + domino.domino_name)
+		
+func trigger_discard_selection(minimum_discards: int, maximum_discards: int, origin_domino: DominoContainer = null, target: String = "PLAYER", collection: String = "HAND"):
+	var targetted_collection = get_target_collection(target)
 	
 	if(targetted_collection.get_children().size() == 0):
 		print("Not enough dominos to discard.")
@@ -238,7 +281,7 @@ func game_state_default() -> bool:
 
 # End the player's turn and start the AI's turn
 func _on_end_turn_pressed():
-	print("Ending turn...")
+	unselect_dominos()
 	if (!check_game_over()): # Check if the game is over before switching turns
 		if player_turn:
 			player_turn = false
@@ -380,21 +423,13 @@ func draw_enemy_hand(count: int):
 		animate_domino(domino, enemy_hand)
 
 # Animate the domino sliding from the right to its position in the HBoxContainer
-func animate_domino(domino, container: HBoxContainer):
+func animate_domino(domino, container: GridContainer):
 	# Calculate the starting position (off-screen to the right)
 	var start_position = Vector2(OS.window_size.x, domino.rect_position.y)
 	
-	
-	# Add the domino to the container to get its intended position
-	#container.add_child(domino)
-	
-	# Calculate the end position based on the number of children in the container
-	var domino_index = container.get_child_count() - 1
-	var domino_width = domino.get_combined_minimum_size().x + container.get_constant("separation")
-	var end_position = Vector2(domino_width * domino_index, domino.rect_position.y)
-	
 	# Set the initial position to the start position
 	domino.rect_position = start_position
+	var end_position = domino.final_domino_position(max(0, container.get_child_count() - 1), container)
 	
 	# Show the domino and animate it to its position in the container
 	var delay = 1.0
@@ -414,7 +449,6 @@ func animate_domino(domino, container: HBoxContainer):
 
 func update_battle_text(text: String):
 	battle_text.text = text
-	print(get_game_state_string())
 	debug_text.text = get_game_state_string()
 
 func update_domino_highlights():

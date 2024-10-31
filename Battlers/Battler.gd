@@ -58,9 +58,6 @@ func remove_domino(collection, domino: DominoContainer):
 			# Set up the fade-out animation
 			tween.interpolate_property(user_dominos, "modulate:a", 1, 0, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
 			
-			# Set up the spin animation
-			tween.interpolate_property(user_dominos, "rotation_degrees", 0, 360, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
-			
 			# Set up the fall animation (with gravity effect)
 			var start_position = user_dominos.rect_global_position
 			var end_position = start_position + Vector2(0, 400)  # Fall distance
@@ -76,6 +73,9 @@ func remove_domino(collection, domino: DominoContainer):
 
 # Callback function to finalize removal and rearrange remaining dominos
 func remove_domino_after_tween(user_domino, collection):
+
+	var start_position = user_domino.get_global_position()
+	
 	# Remove the domino from its collection
 	collection.remove_child(user_domino)
 	
@@ -83,15 +83,20 @@ func remove_domino_after_tween(user_domino, collection):
 	var tween = Game.get_node("Game").tween
 	for i in range(collection.get_child_count()):
 		var remaining_domino = collection.get_child(i)
-		var new_position = Vector2(i * (remaining_domino.get_combined_minimum_size().x + collection.get_constant("separation")), remaining_domino.rect_position.y)
-		tween.interpolate_property(remaining_domino, "rect_position", remaining_domino.rect_position, new_position, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+		var target_position = remaining_domino.final_domino_position(i, collection)
+		
+		# Interpolate the domino to the new position
+		tween.interpolate_property(remaining_domino, "rect_position", remaining_domino.rect_position, target_position, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
 	
 	# Start the sliding animation for remaining dominos
 	tween.start()
-	yield(get_tree().create_timer(1), "timeout") # Wait for the animation to finish
-
-	Game.get_node("Game").update_domino_highlights()
 	
+	# Wait for the animation to finish
+	yield(get_tree().create_timer(1), "timeout")
+
+	# Update highlights or other properties after movement
+	Game.get_node("Game").update_domino_highlights()
+
 func get_draw_pile():
 	return self.draw_pile
 
