@@ -45,6 +45,12 @@ func _init(battler_name: String = "Battler", hp: int = 50, max_hp: int = 50, shi
 func name():
 	return self.battler_name
 
+func get_hand():
+	if(self.battler_name == "Player"):
+		return Game.get_node("Game").player_hand
+	elif(self.battler_name == "Enemy"):
+		return Game.get_node("Game").enemy_hand
+
 func remove_domino(collection, domino: DominoContainer):
 	# Locate the matching domino in the collection
 	for user_dominos in collection.get_children():
@@ -74,7 +80,7 @@ func remove_domino(collection, domino: DominoContainer):
 # Callback function to finalize removal and rearrange remaining dominos
 func remove_domino_after_tween(user_domino, collection):
 
-	var start_position = user_domino.get_global_position()
+	#var start_position = user_domino.get_global_position()
 	
 	# Remove the domino from its collection
 	collection.remove_child(user_domino)
@@ -142,6 +148,18 @@ func add_to_draw_pile(domino: DominoContainer, type: String = "draw"):
 			Game.get_node("Game").enemy_hand.erase(domino)
 
 
+func add_to_hand(domino: DominoContainer, type: String = "hand"):
+	self.draw_pile.append(domino)
+	if(type == "discard"):
+		self.discard_pile.erase(domino)
+	elif type == "void":
+		self.void_space.erase(domino)
+	elif type == "hand":
+		if(self.battler_name == "Player"):
+			Game.get_node("Game").player_hand.erase(domino)
+		elif(self.battler_name == "Enemy"):
+			Game.get_node("Game").enemy_hand.erase(domino)
+
 func add_to_deck(domino: DominoContainer, type: String):
 	domino.set_user(type)
 	self.deck.append(domino)
@@ -149,8 +167,6 @@ func add_to_deck(domino: DominoContainer, type: String):
 func initialize_deck():
 	draw_pile = self.get_deck()
 	draw_pile.shuffle()
-	for domino in draw_pile:
-		domino.set_user(battler_name)
 		# domino.connect("domino_pressed", game, "_on_domino_pressed") # Connect the signal
 		# Perform a priori setup for the domino
 
@@ -287,3 +303,10 @@ func on_remove_debuff_effects(buff):
 
 func on_remove_effect(buff):
 	pass
+
+#================================================================================
+# Turn effects
+#================================================================================
+
+func on_turn_end():
+	self.dominos_played_this_turn = []

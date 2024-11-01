@@ -32,6 +32,9 @@ var dot_images = {
 # BB code functions
 #================================================================
 
+func bb_code_dot(num: int):
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/" + str(num) + "Tile.png[/img][/font]"
+
 func bb_code_tile():
 	return "[font=res://Fonts/VAlign.tres][img]res://Icons/" + str(get_numbers()[0]) + "Tile.png[/img][/font] [font=res://Fonts/VAlign.tres][img]res://Icons/" + str(get_numbers()[1]) + "Tile.png[/img][/font]"
 
@@ -56,6 +59,9 @@ func bb_code_discard():
 func bb_code_draw():
 	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Draw.png[/img][/font]"
 
+func bb_code_pile():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Pile.png[/img][/font]"
+	
 func bb_code_vulnerable():
 	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Vulnerable.png[/img][/font]"
 
@@ -225,7 +231,16 @@ func update_highlight(can_play: bool):
 
 func random_value():
 	return randi() % 6 + 1
-	
+
+func unique_random_value(arr: Array):
+	var array = [1, 2, 3, 4, 5, 6]
+	var result = []
+	for item in array:
+		if not arr.has(item):
+			result.append(item)
+	result.shuffle()
+	return result[0]
+
 # Handle left button press and emit signal with number1
 func _on_left_button_pressed():
 	emit_signal("domino_pressed", self, number1) # Emit signal with number1 and self (domino container)

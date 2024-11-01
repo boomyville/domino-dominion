@@ -8,5 +8,5 @@ func _init():
 
 func effect(origin, target):
 	.effect(origin, target)
-	Game.get_node("Game").trigger_random_discard_from_hand(self, 1, origin.name.to_upper())
+	Game.get_node("Game").trigger_domino_transfer(self, true, 1, origin.name.to_upper(), "Hand", "Discard")
 	shield_message(origin, origin, origin.add_shields(7))

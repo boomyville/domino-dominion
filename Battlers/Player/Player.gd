@@ -11,7 +11,7 @@ func _ready():
 	
 func initialize_deck():
 	# Create the player's deck of dominos
-	for _i in range(9):
+	for _i in range(4):
 		var domino = load("res://Domino/Attack/WildSwing.tscn").instance()
 		add_to_deck(domino, "player")
 	for _i in range(5):
@@ -21,15 +21,10 @@ func initialize_deck():
 		var domino = load("res://Domino/Attack/QuickStrike.tscn").instance()
 		add_to_deck(domino, "player")
 	for _i in range(5):
-		var domino = load("res://Domino/Skill/Block.tscn").instance()
+		var domino = load("res://Domino/Attack/UltraHand.tscn").instance()
 		add_to_deck(domino, "player")
 	for _i in range(5):
-		var domino = load("res://Domino/Skill/Deflection.tscn").instance()
+		var domino = load("res://Domino/Attack/UltraViolence.tscn").instance()
 		add_to_deck(domino, "player")
-	for _i in range(5):
-		var domino = load("res://Domino/Skill/DefensivePosition.tscn").instance()
-		add_to_deck(domino, "player")
-	for _i in range(3):
-		var domino = load("res://Domino/Skill/Amplify.tscn").instance()
-		add_to_deck(domino, "player")
+
 	.initialize_deck()
