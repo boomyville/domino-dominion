@@ -4,6 +4,7 @@ func _init():
 	number1 = random_value()
 	number2 = random_value()
 	domino_name = "Deflection"
+	criteria = ["Common", "Swordfighter"]
 	description = "Self: 8" + bb_code_shield() + "\n" + "1" + bb_code_random() + bb_code_discard()
 
 func effect(origin, target):

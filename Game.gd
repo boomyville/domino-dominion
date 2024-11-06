@@ -8,12 +8,14 @@ export var touch_mode = true # If touch mode is enabled, dominos need to be tapp
 
 # UI elements
 onready var player_hand = get_node("../GameBoard/PlayerHand") # Player's hand container
-onready var enemy_hand = get_node("../GameBoard/EnemyHand") # AI's hand container (non-clickable)
-onready var play_board = get_node("../GameBoard/PlayBoard") # Play field container
+onready var enemy_hand = get_node("../EnemyHand") # AI's hand container (non-clickable)
+onready var play_board = get_node("../PlayBoard/HBoxContainer") # Play field container
 onready var end_turn_button = get_node("../GameBoard/EndTurn") # Button for ending turn
 onready var battle_text = get_node("../GUIContainer/BattleText")
 onready var debug_text = get_node("../GUIContainer/DebugText")
 onready var tween = get_node("../GameBoard/Tween")
+var selection_popup
+
 var player_scene = preload("res://Battlers/Player/Player.tscn")
 var enemy_scene = preload("res://Battlers/Enemy/Enemy.tscn")
 
@@ -54,8 +56,12 @@ func _input(event):
 	if event is InputEventKey and event.scancode == KEY_1 and event.pressed:
 		draw_hand(1, "PLAYER", "ANY")
 	if event is InputEventKey and event.scancode == KEY_2 and event.pressed:
-		trigger_domino_transfer(null, true, 1, "Player", "Hand", "Discard")
-
+		trigger_domino_transfer(null, true, 1, "PLAYER", "HAND", "DISCARD")
+		play_board.get_parent().set_h_scroll(play_board.rect_size.x)
+		print(play_board.get_parent().get_h_scroll(), ": scroll size")
+		print("Playboard size: ", play_board.rect_size.x)
+	if event is InputEventKey and event.scancode == KEY_3 and event.pressed:
+		print(player.discard_pile.size(), " dominos in player's discard pile.")
 #=====================================================
 # Initialisation
 #=====================================================
@@ -68,6 +74,10 @@ func _ready():
 	initialize_battle() # Initialize the battle
 
 	end_turn_button.connect("pressed", self, "_on_end_turn_pressed")
+
+	selection_popup = preload("res://SelectionPopup.tscn").instance() 
+	add_child(selection_popup)
+	selection_popup.hide()
 
 	# Draw the first (board only) domino to start the game
 	draw_first_domino()
@@ -95,9 +105,27 @@ func draw_first_domino():
 	set_played_number(first_domino_number) # Set the last played number
 
 #=====================================================
+# Helper methods
+#=====================================================
+func string_to_battler(target: String):
+	match target.to_upper():
+		"PLAYER":
+			return player
+		"ENEMY":
+			return enemy
+	return null
+
+func get_hand(target: String) -> GridContainer:
+	var target_hand
+	if(target.to_upper() == "PLAYER"):
+		target_hand = player_hand
+	elif(target.to_upper() == "ENEMY"):
+		target_hand = enemy_hand
+	return target_hand
+
+#=====================================================
 # Event handling (Dominos)
 #=====================================================
-
 func _Input(event):
 	if event is InputEventMouseButton and event.button_index == BUTTON_RIGHT and event.pressed :
 		unselect_dominos()
@@ -108,8 +136,7 @@ func unselect_dominos():
 			domino.set_clicked(false)
 
 # Handle the event when a player plays a domino
-func _on_domino_pressed(domino_container: DominoContainer, pressed_number: int):
-	
+func _on_domino_pressed(domino_container: DominoContainer, pressed_number: int):	
 	if(touch_mode):
 		if(domino_container.selected):
 			play_domino(domino_container, pressed_number)
@@ -124,6 +151,11 @@ func _on_domino_pressed(domino_container: DominoContainer, pressed_number: int):
 			print("Invalid move. You must complete the current action first.")
 		else:
 			print("It's not your turn!")
+
+func _on_Panel_gui_input(event:InputEvent):
+	if event is InputEventMouseButton and event.pressed:
+		unselect_dominos()
+		update_domino_highlights()
 
 func play_domino(domino_container: DominoContainer, pressed_number: int):
 	var user
@@ -150,6 +182,7 @@ func play_domino(domino_container: DominoContainer, pressed_number: int):
 # Move a valid domino to the play field and disable its buttons
 func move_domino_to_playfield(domino_container):
 	domino_container.clear_highlight()
+	domino_container.set_clicked(false)
 
 	# Apply domino effect (such as damage or shielding)
 	if domino_container.get_user().to_upper() == "PLAYER":
@@ -161,8 +194,8 @@ func move_domino_to_playfield(domino_container):
 	var start_position = domino_container.get_global_position() - play_board.get_global_position()
 	
 	# Calculate the target position
-	var target_positionX = play_board.get_child_count() % play_board.columns * (domino_container.get_combined_minimum_size().x + play_board.get_constant("hseparation"))
-	var target_positionY = floor(play_board.get_child_count() / play_board.columns) * (domino_container.get_combined_minimum_size().y + play_board.get_constant("vseparation"))
+	var target_positionX = play_board.get_child_count()  * (domino_container.get_combined_minimum_size().x + play_board.get_constant("separation"))
+	var target_positionY = 0 * (domino_container.get_combined_minimum_size().y + play_board.get_constant("separation"))
 	var target_position = Vector2(target_positionX, target_positionY)
 
 	# Temporarily hide the domino
@@ -175,6 +208,7 @@ func move_domino_to_playfield(domino_container):
 	
 	domino_container.set_user("board") # Set the user to the board
 	play_board.add_child(domino_container) # Add to play field
+	play_board.get_child(play_board.get_child_count() - 1).grab_focus()
 
 	# Set the initial position to the start position
 	domino_container.rect_position = start_position
@@ -190,6 +224,8 @@ func move_domino_to_playfield(domino_container):
 	# Update the last played number (the second number of the domino)
 	set_played_number(domino_container.get_numbers()[1])
 	
+	update_domino_highlights() # Update the highlights of the dominos in the player's hand
+
 	# Update player and enemy
 	player.update()
 	enemy.update()
@@ -218,41 +254,36 @@ func reposition_domino_hand():
 # Trigger discard selection from the special domino effect
 
 func get_target_collection(target: String, collection: String) -> Array:
+	var target_collection
 	if(target.to_upper() == "PLAYER"):
-		match collection.to_upper():
-			"HAND":
-				return player_hand.get_children()
-			"PILE":
-				return player.get_draw_pile()
-			"DISCARD":
-				return player.get_discard_pile()
-			"VOID":
-				return player.get_void_space()
+		target_collection = player_hand
 	elif(target.to_upper() == "ENEMY"):
-		match collection.to_upper():
-			"HAND":
-				return enemy_hand.get_children()
-			"PILE":
-				return enemy.get_draw_pile()
-			"DISCARD":
-				return enemy.get_discard_pile()
-			"VOID":
-				return enemy.get_void_space()
-	else:
-		print("Invalid target for discard selection.")
+		target_collection = enemy_hand
+	match collection.to_upper():
+		"HAND":
+			return target_collection.get_children()
+		"PILE":
+			return string_to_battler(target).get_draw_pile()
+		"DISCARD":
+			return string_to_battler(target).get_discard_pile()
+		"VOID":
+			return string_to_battler(target).get_void_space()
+		_:
+			print("Invalid target for discard selection.")
 	return []
 
-func trigger_domino_transfer(current_domino, randomise: bool, number: int, target: String, origin: String, destination: String):
+# Moves X dominos from one collection to another; no selection prompt is shown
+func trigger_domino_transfer(current_domino, randomise: bool, number: int, target_battler: String, origin_collection: String, destination_collection: String):
 
-	var targetted_collection = get_target_collection(target, origin.to_upper())
+	var targetted_collection = get_target_collection(target_battler, origin_collection.to_upper())
 
 	if(targetted_collection.size() == 0):
-		print("No dominos in " + origin.to_lower() + " to transfer.")
+		print("No dominos in " + origin_collection.to_lower() + " to transfer.")
 		return
 	else:
 		var potential_options = targetted_collection.duplicate()
 
-		if(current_domino in potential_options and origin.to_upper() == "HAND"):
+		if(current_domino in potential_options and origin_collection.to_upper() == "HAND"):
 			potential_options.erase(current_domino) # We do not include the played domino in the selection
 
 		if(randomise):	
@@ -262,58 +293,40 @@ func trigger_domino_transfer(current_domino, randomise: bool, number: int, targe
 			pass # No need to truncate potential dominos to transfer
 		else:
 			potential_options.resize(number)
+		print("[Game.gd trigger_domino_transfer] Potential options: ",potential_options)
 
 		for domino in potential_options:
-			add_to_collection(domino, target, destination)
-			if(origin.to_upper() and potential_options.size() == 0):
-				pass # Domino is played from hand and its the only domino in the hand (so it goes to the board)
-			else:
-				remove_from_collection(domino, target, origin)
+			add_to_collection(domino, target_battler, destination_collection, origin_collection)
+			print("[Game.gd trigger_domino_transfer] Adding ", domino.domino_name, " to ", target_battler, "'s ", destination_collection ," from ", origin_collection)
+			#if(origin_collection.to_upper() == "HAND" and potential_options.size() == 0):
+				#pass # Domino is played from hand and its the only domino in the hand (so it goes to the board)
+			#else:
+				#remove_from_collection(domino, target_battler, origin_collection)
 			
 
-func add_to_collection(domino: DominoContainer, target: String, destination: String):
-	if(target.to_upper() == "PLAYER"):
-		match destination.to_upper():
-			"HAND":
-				player.add_to_hand(domino, "hand")
-			"PILE":
-				player.add_to_draw_pile(domino, "draw")
-			"DISCARD":
-				player.add_to_discard_pile(domino, "discard")
-			"VOID":
-				player.add_to_void_space(domino, "void")
-	elif(target.to_upper() == "ENEMY"):
-		match destination.to_upper():
-			"HAND":
-				enemy.add_to_hand(domino, "hand")
-			"PILE":
-				enemy.add_to_draw_pile(domino, "draw")
-			"DISCARD":
-				enemy.add_to_discard_pile(domino, "discard")
-			"VOID":
-				enemy.add_to_void_space(domino, "void")		
+func add_to_collection(domino: DominoContainer, target_battler: String, destination_collection: String, origin_collection: String):
+	match destination_collection.to_upper():
+		"HAND":
+			string_to_battler(target_battler).add_to_hand(domino, origin_collection)
+		"PILE":
+			string_to_battler(target_battler).add_to_draw_pile(domino, origin_collection)
+		"DISCARD":
+			string_to_battler(target_battler).add_to_discard_pile(domino, origin_collection)
+		"VOID":
+			string_to_battler(target_battler).add_to_void_space(domino, origin_collection)
 
-func remove_from_collection(domino: DominoContainer, target: String, origin: String):
-	if(target.to_upper() == "PLAYER"):
-		match origin.to_upper():
-			"HAND":
-				erase_from_hand(player_hand, domino)
-			"PILE":
-				player.get_draw_pile().erase(domino)
-			"DISCARD":
-				player.get_discard_pile().erase(domino)
-			"VOID":
-				player.get_void_space().erase(domino)
-	elif(target.to_upper() == "ENEMY"):
-		match origin.to_upper():
-			"HAND":
-				erase_from_hand(enemy_hand, domino)
-			"PILE":
-				enemy.get_draw_pile().erase(domino)
-			"DISCARD":
-				enemy.get_discard_pile().erase(domino)
-			"VOID":
-				enemy.get_void_space().erase(domino)
+func remove_from_collection(domino: DominoContainer, target_battler: String, origin: String):
+	var target_hand = get_hand(target_battler)
+	print("[Game.gd remove_from_collection] Removing ", domino.domino_name, " from ", origin)
+	match origin.to_upper():
+		"HAND":
+			erase_from_hand(target_hand, domino)
+		"PILE":
+			string_to_battler(target_battler).get_draw_pile().erase(domino)
+		"DISCARD":
+			string_to_battler(target_battler).get_discard_pile().erase(domino)
+		"VOID":
+			string_to_battler(target_battler).get_void_space().erase(domino)
 
 # Special method for erasing from hand (tween animation)
 func erase_from_hand(collection: GridContainer, domino: DominoContainer):
@@ -348,52 +361,52 @@ func erase_from_hand(collection: GridContainer, domino: DominoContainer):
 			yield(get_tree().create_timer(1), "timeout")
 
 			# Free the domino after the animation
-			user_dominos.queue_free()
+			#user_dominos.queue_free()
 
 			# Reposition remaining dominos in the collection
 			reposition_domino_hand()
 			return  # Exit after animating the matched domino
 
-func trigger_discard_selection(minimum_discards: int, maximum_discards: int, origin_domino: DominoContainer = null, target: String = "PLAYER", collection: String = "HAND"):
-	var targetted_collection = get_target_collection(target, "HAND")
+func domino_selection(selection_minimum: int, maximium_selection: int, origin_domino: DominoContainer, target: String, collection: String, collection_size: int = -1, destination_collection: String = "hand"):
+	var targetted_collection = get_target_collection(target, collection)
 	
-	if(targetted_collection.size() == 0):
-		print("Not enough dominos to discard.")
-		return
-	elif(targetted_collection.size() == 1 && collection.to_upper() == "HAND"):
-		print("Only domino in hand is played domino... not enough dominos to discard.")
+	if(targetted_collection.size() == 0 || collection_size == 0 || (targetted_collection.size() == 1 && collection.to_upper() == "HAND")):
+		update_battle_text("Not enough dominos to select from.")
 		return
 	else:
-		game_state = GameState.DISCARD_SELECTION
-		var discard_popup = preload("res://SelectionPopup.tscn").instance()
-		add_child(discard_popup)
-		discard_popup.setup_selection_popup(targetted_collection, minimum_discards, maximum_discards, origin_domino, target, collection, "process_discard")
-		discard_popup.popup_centered()
+		game_state = GameState.get(collection.to_upper() + "_SELECTION")
+		selection_popup.show()
+		var collection_copy = targetted_collection.duplicate()
 
-func process_discard(selected_dominos: Array):
-	if game_state == GameState.DISCARD_SELECTION:
-		for domino in selected_dominos:
-			player.add_to_discard_pile(domino, "hand")
-		game_state = GameState.DEFAULT
+		# Setup collection size
+		if(collection_size > 0):
+			collection_copy.resize(collection_size)
 
-func trigger_search_selection(minimum_search: int, maximum_search: int, origin_domino: DominoContainer = null, target: String = "PLAYER", collection: String = "PILE"):
-	var targetted_collection = get_target_collection(target, "PILE")
+		selection_popup.setup_selection_popup(collection_copy, selection_minimum, maximium_selection, origin_domino, target, collection, destination_collection, "process_selection")
+		selection_popup.popup_centered()
+
+
+func process_selection(selected_dominos: Array, target: String, origin_collection, destination_collection: String):
 	
-	if(targetted_collection.size() == 0):
-		print("Not enough dominos to search for.")
-		return
-	else:
-		game_state = GameState.PILE_SELECTION
-		var search_popup = preload("res://SelectionPopup.tscn").instance()
-		add_child(search_popup)
-		search_popup.setup_selection_popup(targetted_collection, minimum_search, maximum_search, origin_domino, target, collection, "process_search")
-		search_popup.popup_centered()
+	match destination_collection.to_upper():
+		"DISCARD":
+			for domino in selected_dominos:
+				string_to_battler(target).add_to_discard_pile(domino, origin_collection)
+		
+		"HAND":
+			for domino in selected_dominos:
+				string_to_battler(target).add_to_hand(domino, origin_collection)
 
-func process_search(selected_dominos: Array):
-	if game_state == GameState.PILE_SELECTION:
-		for domino in selected_dominos:
-			player.add_to_hand(domino, "pile")
-		game_state = GameState.DEFAULT
+		"PILE":
+			for domino in selected_dominos:
+				string_to_battler(target).add_to_draw_pile(domino, origin_collection)
+		
+		"VOID":
+			for domino in selected_dominos:
+				string_to_battler(target).add_to_void_space(domino, origin_collection)
+	
+	game_state = GameState.DEFAULT
+	update_domino_highlights()
 
 func is_selection() -> bool:
 	return game_state != GameState.DEFAULT || game_state != GameState.INACTIVE
@@ -515,12 +528,15 @@ func draw_hand(count: int, target: String, type: String = "ANY"):
 	var collection
 	var targetDrawPile
 
-	if(target.to_upper() == "PLAYER"):
-		collection = player_hand
-		targetDrawPile = player.get_draw_pile() 
-	elif(target.to_upper() == "ENEMY"):
-		collection = enemy_hand
-		targetDrawPile = enemy.get_draw_pile()
+	collection = get_hand(target)
+
+	targetDrawPile = string_to_battler(target).get_draw_pile() 
+	
+	if(targetDrawPile.size() == 0):
+		print("No more dominos to draw.")
+		check_game_over() # Check if the game is over
+		return
+	
 	if(type.to_upper() != "ANY"):
 		targetDrawPile = get_random_draw(type, targetDrawPile)
 	for _i in range(count):
@@ -534,6 +550,9 @@ func draw_hand(count: int, target: String, type: String = "ANY"):
 	# Add the drawn dominos to the player's hand
 	yield(get_tree().create_timer(0.2), "timeout") 
 	for domino in drawn_dominos:
+		if(domino == null):
+			print("No more dominos to draw.")
+			return
 		targetDrawPile.erase(domino) # Remove it from the draw pile
 		# Set initial opacity to 0
 		domino.modulate.a = 0

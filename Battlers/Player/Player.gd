@@ -24,7 +24,13 @@ func initialize_deck():
 		var domino = load("res://Domino/Attack/UltraHand.tscn").instance()
 		add_to_deck(domino, "player")
 	for _i in range(5):
-		var domino = load("res://Domino/Attack/UltraViolence.tscn").instance()
+		var domino = load("res://Domino/Attack/DualStrike.tscn").instance()
+		add_to_deck(domino, "player")
+	for _i in range(5):
+		var domino = load("res://Domino/Skill/Glance.tscn").instance()
+		add_to_deck(domino, "player")
+	for _i in range(5):
+		var domino = load("res://Domino/Skill/Deflection.tscn").instance()
 		add_to_deck(domino, "player")
 
 	.initialize_deck()

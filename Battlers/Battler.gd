@@ -109,57 +109,62 @@ func get_draw_pile():
 func get_discard_pile():
 	return self.discard_pile
 
+func get_void_space():
+	return self.void_space
+
+func remove_from(selected_domino: DominoContainer, type: String):
+	print("[Battle.gd - remove_from] Removing ", selected_domino.domino_name, " from ", type)
+	if(type.to_upper() == "DRAW" || type.to_upper() == "PILE"):
+		for domino in self.get_draw_pile():
+			if(domino.check_shadow_match(selected_domino)):
+				self.draw_pile.erase(domino)
+				return
+	elif(type.to_upper() == "DISCARD"):
+		print(self.get_discard_pile())
+		for domino in self.get_discard_pile():
+			if(domino.check_shadow_match(selected_domino)):
+				self.discard_pile.erase(domino)
+				return
+	elif(type.to_upper() == "VOID"):
+		for domino in self.get_void_space():
+			if(domino.check_shadow_match(selected_domino)):
+				self.void_space.erase(domino)
+				return
+	elif type.to_upper() == "HAND":
+		Game.get_node("Game").erase_from_hand(Game.get_node("Game").get_hand(self.battler_name), selected_domino)
+	Game.get_node("Game").update_domino_highlights()
+
 func add_to_discard_pile(domino: DominoContainer, type: String = "draw"):
 	self.discard_pile.append(domino)
-	if(type == "void"):
-		self.void_space.erase(domino)
-	elif type == "draw":
-		self.draw_pile.erase(domino)
-	elif type == "hand":
-		if(self.battler_name == "Player"):
-			remove_domino(Game.get_node("Game").player_hand, domino)
-		elif(self.battler_name == "Enemy"):
-			remove_domino(Game.get_node("Game").enemy_hand, domino)
-		
-
+	remove_from(domino, type)
+	
 func add_to_void_space(domino: DominoContainer, type: String = "draw"):
 	self.void_space.append(domino)
-	if(type == "discard"):
-		self.discard_pile.erase(domino)
-	elif type == "draw":
-		self.draw_pile.erase(domino)
-	elif type == "hand":
-		if(self.battler_name == "Player"):
-			remove_domino(Game.get_node("Game").player_hand, domino)
-		elif(self.battler_name == "Enemy"):
-			remove_domino(Game.get_node("Game").enemy_hand, domino)
-			Game.get_node("Game").enemy_hand.erase(domino)
+	remove_from(domino, type)
 
 func add_to_draw_pile(domino: DominoContainer, type: String = "draw"):
 	self.draw_pile.append(domino)
-	if(type == "discard"):
-		self.discard_pile.erase(domino)
-	elif type == "void":
-		self.void_space.erase(domino)
-	elif type == "hand":
-		if(self.battler_name == "Player"):
-			Game.get_node("Game").player_hand.erase(domino)
-		elif(self.battler_name == "Enemy"):
-			Game.get_node("Game").enemy_hand.erase(domino)
+	remove_from(domino, type)
 
+func add_to_hand(domino: DominoContainer, type: String = "pile"):
+	var collection = Game.get_node("Game").get_hand(self.battler_name)
+	
+	if not collection:
+		print("Error: Collection node not found.")
+		return
+		
+	if domino.is_inside_tree():
+		var current_parent = domino.get_parent()
+		current_parent.remove_child(domino)
+		print("Removed from current parent: ", current_parent.name)
 
-func add_to_hand(domino: DominoContainer, type: String = "hand"):
-	self.draw_pile.append(domino)
-	if(type == "discard"):
-		self.discard_pile.erase(domino)
-	elif type == "void":
-		self.void_space.erase(domino)
-	elif type == "hand":
-		if(self.battler_name == "Player"):
-			Game.get_node("Game").player_hand.erase(domino)
-		elif(self.battler_name == "Enemy"):
-			Game.get_node("Game").enemy_hand.erase(domino)
-
+	collection.add_child(domino)
+	domino.connect("domino_pressed", Game.get_node("Game"), "_on_domino_pressed") # Connect the signal
+		
+	Game.get_node("Game").animate_domino(domino, collection)
+	
+	remove_from(domino, type)
+	
 func add_to_deck(domino: DominoContainer, type: String):
 	domino.set_user(type)
 	self.deck.append(domino)
@@ -214,7 +219,6 @@ func set_hp(new_hp):
 
 # Function to deal damage to the player
 func damage(attacker, amount) -> int:
-	print("Initial Damage:", amount)
 	var damage_data = { "damage": amount, "attacker": attacker, "defender": self }
 	
 	# Apply additive damage modifications
@@ -234,7 +238,6 @@ func damage(attacker, amount) -> int:
 		effect.on_event("subtractive_damage", damage_data)
 
 	amount = damage_data["damage"]
-	print("Final Damage:", amount)
 	
 	# Handle shield and HP adjustments based on final damage amount
 	var shield_difference = self.shield - amount
