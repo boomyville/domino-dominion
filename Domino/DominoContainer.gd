@@ -73,23 +73,36 @@ func bb_code_vulnerable():
 func bb_code_random():
 	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Random.png[/img][/font]"
 
-# Add this function in your DominoContainer script
 func shadow_copy() -> DominoContainer:
 	var duplicate_instance = self.duplicate()
 	
-	# Copy each custom property
+	# Create deep copies of scripts and resources
+	duplicate_instance.set_script(null)  # Break script reference
+	duplicate_instance.set_script(load(self.get_script().get_path()))  # Re-attach script
+	
+	# Deep copy custom properties (if they are objects)
 	duplicate_instance.number1 = self.number1
 	duplicate_instance.number2 = self.number2
 	duplicate_instance.user = self.user
 	duplicate_instance.domino_name = self.domino_name
 	duplicate_instance.is_mouse_in_container = self.is_mouse_in_container
 	duplicate_instance.battle_text = self.battle_text
-	duplicate_instance.shader_material_left = self.shader_material_left
-	duplicate_instance.shader_material_right = self.shader_material_right
-	duplicate_instance.shader_material_domino = self.shader_material_domino
+	
+	# Create material copies to break texture references
+	if(self.shader_material_left):
+		duplicate_instance.shader_material_left = self.shader_material_left.duplicate()
+	
+	if(self.shader_material_right):
+		duplicate_instance.shader_material_right = self.shader_material_right.duplicate()
+	
+	if(self.shader_material_domino):
+		duplicate_instance.shader_material_domino = self.shader_material_domino.duplicate()
+	
 	# Set the flag to indicate this domino is in popup mode
-	duplicate_instance.shadow_variant = true  # Add this flag
+	duplicate_instance.shadow_variant = true
+	
 	return duplicate_instance
+
 
 func check_shadow_match(domino: DominoContainer) -> bool:
 	return self.number1 == domino.number1 && self.number2 == domino.number2 && domino.user == self.user && domino.domino_name == self.domino_name

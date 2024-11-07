@@ -33,8 +33,10 @@ enum GameState {
 	PILE_SELECTION,
 	HAND_SELECTION,
 	VOID_SELECTION,
+	DOMINO_CHECK,
 	INACTIVE
 }
+
 var game_state = GameState.DEFAULT
 
 const GAME_STATE_STRINGS = {
@@ -43,6 +45,7 @@ const GAME_STATE_STRINGS = {
 	GameState.PILE_SELECTION: "Pile Selection",
 	GameState.HAND_SELECTION: "Hand Selection",
 	GameState.VOID_SELECTION: "Void Selection",
+	GameState.DOMINO_CHECK: "Domino Check",
 	GameState.INACTIVE: "Inactive"
 }
 
@@ -57,12 +60,9 @@ func _input(event):
 		draw_hand(1, "PLAYER", "ANY")
 	if event is InputEventKey and event.scancode == KEY_2 and event.pressed:
 		trigger_domino_transfer(null, true, 1, "PLAYER", "HAND", "DISCARD")
-		play_board.get_parent().set_h_scroll(play_board.rect_size.x)
-		print(play_board.get_parent().get_h_scroll(), ": scroll size")
-		print("Playboard size: ", play_board.rect_size.x)
 	if event is InputEventKey and event.scancode == KEY_3 and event.pressed:
-		print(player.discard_pile.size(), " dominos in player's discard pile.")
-#=====================================================
+		pass
+		
 # Initialisation
 #=====================================================
 func _ready():
@@ -100,8 +100,20 @@ func initialize_battle():
 func draw_first_domino():
 	var first_domino_number = randi() % 6 + 1 # Roll a die (1-6)
 	var domino = DominoContainerScene.instance()
+	var domino2 = DominoContainerScene.instance()
+	var domino3 = DominoContainerScene.instance()
+	var domino4 = DominoContainerScene.instance()
+	var domino5 = DominoContainerScene.instance()
 	domino.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
+	domino2.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
+	domino3.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
+	domino4.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
+	domino5.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
 	play_board.add_child(domino)
+	play_board.add_child(domino2)
+	play_board.add_child(domino3)
+	play_board.add_child(domino4)
+	play_board.add_child(domino5)
 	set_played_number(first_domino_number) # Set the last played number
 
 #=====================================================
@@ -181,8 +193,6 @@ func play_domino(domino_container: DominoContainer, pressed_number: int):
 
 # Move a valid domino to the play field and disable its buttons
 func move_domino_to_playfield(domino_container):
-	domino_container.clear_highlight()
-	domino_container.set_clicked(false)
 
 	# Apply domino effect (such as damage or shielding)
 	if domino_container.get_user().to_upper() == "PLAYER":
@@ -207,8 +217,10 @@ func move_domino_to_playfield(domino_container):
 		enemy_hand.remove_child(domino_container) # Remove from AI's hand
 	
 	domino_container.set_user("board") # Set the user to the board
+	domino_container.set_clicked(false)
+	domino_container.clear_highlight()
 	play_board.add_child(domino_container) # Add to play field
-	play_board.get_child(play_board.get_child_count() - 1).grab_focus()
+	#play_board.get_child(play_board.get_child_count() - 1).grab_focus()
 
 	# Set the initial position to the start position
 	domino_container.rect_position = start_position
@@ -247,6 +259,8 @@ func reposition_domino_hand():
 		tween.interpolate_property(remaining_domino, "rect_position", remaining_domino.rect_position, new_position, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
 	
 	tween.start()
+	yield(get_tree().create_timer(0.1), "timeout") # Wait for the animation to finish
+	play_board.get_parent().set_h_scroll(play_board.rect_size.x)
 
 #=====================================================
 # Domino manipulation selection
@@ -383,7 +397,7 @@ func domino_selection(selection_minimum: int, maximium_selection: int, origin_do
 			collection_copy.resize(collection_size)
 
 		selection_popup.setup_selection_popup(collection_copy, selection_minimum, maximium_selection, origin_domino, target, collection, destination_collection, "process_selection")
-		selection_popup.popup_centered()
+		selection_popup.get_node("PopupPanel").popup_centered()
 
 
 func process_selection(selected_dominos: Array, target: String, origin_collection, destination_collection: String):
@@ -612,3 +626,22 @@ func update_domino_highlights():
 		if domino is DominoContainer:
 			var can_be_played = domino.can_play(last_played_number, player, enemy)
 			domino.update_highlight(can_be_played != "unplayable" && can_be_played != "prohibited")
+
+func exit_popup():
+	selection_popup.hide()
+
+func _on_ShowDraw_pressed():
+	selection_popup.show()
+	selection_popup.setup_collection_popup(player.get_draw_pile(), "DRAW")
+	selection_popup.get_node("PopupPanel").popup_centered()
+
+func _on_ShowDiscard_pressed():
+	selection_popup.show()
+	selection_popup.setup_collection_popup(player.get_discard_pile(), "DISCARD")
+	selection_popup.get_node("PopupPanel").popup_centered()
+
+
+func _on_ShowVoid_pressed():
+	selection_popup.show()
+	selection_popup.setup_collection_popup(player.get_void_space(), "VOID")
+	selection_popup.get_node("PopupPanel").popup_centered()

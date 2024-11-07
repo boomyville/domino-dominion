@@ -84,7 +84,6 @@ func remove_domino_after_tween(user_domino, collection):
 	
 	# Remove the domino from its collection
 	collection.remove_child(user_domino)
-	
 	# Animate the remaining dominos to slide into their new positions
 	var tween = Game.get_node("Game").tween
 	for i in range(collection.get_child_count()):

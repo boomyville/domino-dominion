@@ -4,48 +4,58 @@
 [ext_resource path="res://Domino/TextBoxWhiteTheme.tres" type="Theme" id=2]
 [ext_resource path="res://SelectionPopup.gd" type="Script" id=3]
 
-[node name="SelectionPopup" type="PopupPanel"]
-margin_right = 600.0
-margin_bottom = 400.0
-rect_min_size = Vector2( 600, 400 )
-popup_exclusive = true
+[node name="SelectionPopup" type="CanvasLayer"]
 script = ExtResource( 3 )
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="PopupPanel" type="PopupPanel" parent="."]
+visible = true
+margin_right = 8.0
+margin_bottom = 8.0
+popup_exclusive = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PopupPanel"]
 margin_left = 4.0
 margin_top = 4.0
-margin_right = 596.0
-margin_bottom = 396.0
+margin_right = 122.0
+margin_bottom = 48.0
 
-[node name="InfoMessage" type="Label" parent="VBoxContainer"]
+[node name="InfoMessage" type="Label" parent="PopupPanel/VBoxContainer"]
 margin_right = 118.0
 margin_bottom = 15.0
 theme = ExtResource( 2 )
 text = "Select a domino"
 align = 1
 
-[node name="GridContainer" type="GridContainer" parent="VBoxContainer"]
+[node name="GridContainer" type="GridContainer" parent="PopupPanel/VBoxContainer"]
 margin_top = 19.0
 margin_right = 118.0
 margin_bottom = 19.0
 columns = 6
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="PopupPanel/VBoxContainer"]
 margin_top = 23.0
 margin_right = 118.0
 margin_bottom = 44.0
 
-[node name="ConfirmButton" type="Button" parent="VBoxContainer/HBoxContainer"]
+[node name="ConfirmButton" type="Button" parent="PopupPanel/VBoxContainer/HBoxContainer"]
 margin_right = 60.0
 margin_bottom = 21.0
 theme = ExtResource( 2 )
 custom_fonts/font = ExtResource( 1 )
 text = "Confirm"
 
-[node name="CancelButton" type="Button" parent="VBoxContainer/HBoxContainer"]
+[node name="CancelButton" type="Button" parent="PopupPanel/VBoxContainer/HBoxContainer"]
 margin_left = 64.0
 margin_right = 118.0
 margin_bottom = 21.0
 theme = ExtResource( 2 )
 custom_fonts/font = ExtResource( 1 )
 text = "Cancel"
+
+[node name="BackgroundDimmer" type="ColorRect" parent="."]
+margin_right = 960.0
+margin_bottom = 460.0
+rect_min_size = Vector2( 960, 460 )
+size_flags_horizontal = 3
+size_flags_vertical = 3
+color = Color( 1, 1, 1, 0.721569 )
