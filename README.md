@@ -18,7 +18,7 @@ Inspirations:
 
 Current build:
 
-![Demo](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/8November2024.gif?raw=true)
+![Demo](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/CurrentBuild.gif?raw=true)
 
 First build:
 ![First Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/11October2024.gif?raw=true)
