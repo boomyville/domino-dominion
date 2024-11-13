@@ -33,3 +33,17 @@ Dominos can now select other dominos and move them to different locations
 Added a scroll pane to the play field 
 
 ![Sixth Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/8November2024.gif?raw=true)
+
+Seventh build
+
+Added new effects:
+- Nullify (prevent all damage per trigger)
+- Burn (take damage equal to level of burn per attack played)
+- Paralysis (prevent domino rotation / swapping)
+- Petrification (prevent domino being played for 1 turn / affects drawn dominos)
+- Frostbite (reduce draw amount)
+- Spikes (attackers take damage)
+- Fury (additive damage)
+
+![Seventh Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/CurrentBuild.gif?raw=true)
+
