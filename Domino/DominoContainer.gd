@@ -15,9 +15,12 @@ var shader_material_right: ShaderMaterial
 var shader_material_domino: ShaderMaterial
 var shadow_variant: bool = false
 var selected: bool = false
+var petrification: int = 0
 signal domino_pressed
 signal pre_effect_complete
 var description_popup = preload("res://Domino/DominoPopup.tscn")
+var default_background = preload("res://Domino/DominoBackground.png")
+var petrified_background = preload("res://Domino/DominoBackgroundPetrified.png")
 
 var dot_images = {
 	-1: preload("res://Domino/-1_dots.png"),
@@ -69,7 +72,31 @@ func bb_code_search():
 	
 func bb_code_vulnerable():
 	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Vulnerable.png[/img][/font]"
+			
+func bb_code_fury():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Fury.png[/img][/font]"
+		
+func bb_code_frostbite():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Frostbite.png[/img][/font]"
+		
+func bb_code_paralysis():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Paralysis.png[/img][/font]"
+		
+func bb_code_petrify():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Petrified.png[/img][/font]"
+		
+func bb_code_burn():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Burn.png[/img][/font]"
+		
+func bb_code_spikes():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Spikes.png[/img][/font]"
 
+func bb_code_bulwark():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Bulwark.png[/img][/font]"
+
+func bb_code_nullify():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Nullify.png[/img][/font]"
+		
 func bb_code_random():
 	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Random.png[/img][/font]"
 
@@ -180,9 +207,9 @@ func get_non_matching_values(arr: Array, value: int) -> Array:
 
 func can_play(last_played_number: int, user, target, pressed_number: int = get_numbers()[0]) -> String:
 	var result = "unplayable"
-	
-	if Game.get_node("Game").game_state != Game.get_node("Game").GameState.DEFAULT:
-		return result
+
+	if Game.get_node("Game").game_state != Game.get_node("Game").GameState.DEFAULT || is_petrified():
+		return result # Unplayable if not in default game state or petrified
 	elif(requirements(user, target) == false):
 		result = "prohibited"
 	elif(pressed_number == last_played_number || pressed_number == -1 || last_played_number == -1):
@@ -194,6 +221,14 @@ func can_play(last_played_number: int, user, target, pressed_number: int = get_n
 		result = "playable"
 	elif(get_numbers()[1] == -1 || get_numbers()[1] == last_played_number):
 		result = "swap"
+
+	var effect_data = {"user": user, "target": target, "domino_played": self, "result": result}
+
+	if(result == "swap"):
+		for effect in user.effects:
+			effect.on_event("after_swap", effect_data)
+		result = effect_data["result"]
+
 	return result
 
 func swap_values():
@@ -250,6 +285,11 @@ func update_highlight(can_play: bool):
 
 func random_value(value: int = 6):
 	return randi() % int(max(1, value)) + 1 
+
+
+func random_value_range(value: int = 0, value2: int = 6):
+	return randi() % int(max(1, value2 - value)) + value
+
 
 func unique_random_value(arr: Array):
 	var array = [1, 2, 3, 4, 5, 6]
@@ -321,6 +361,12 @@ func requirements(origin, target):
 	#print("Origin: ", origin, " | Domino: ", domino_name)
 
 func effect(origin, target):
+	# Play domino effects
+	var effect_data = {"user": origin, "target": target, "domino_played": self}
+
+	for effect in origin.effects:
+		effect.on_event("play_domino", effect_data)
+	
 	origin.dominos_played.append(self)
 	origin.dominos_played_this_turn.append(self)
 
@@ -402,8 +448,6 @@ func hide_domino_description(is_popup: bool = false):
 #================================================================
 # Domino repositioning
 #================================================================
-
-
 func final_domino_position(position: int, collection):
 	var target_positionX: int
 	var target_positionY: int
@@ -416,3 +460,19 @@ func final_domino_position(position: int, collection):
 		target_positionY = 0
 
 	return Vector2(target_positionX, target_positionY)
+#================================================================
+# Domino specified effects
+#   - Petrification
+#================================================================
+func set_petrification(value: int):
+	petrification = value
+	update_background()
+
+func is_petrified() -> bool:
+	return petrification > 0
+
+func update_background():
+	if is_petrified():
+		$Node2D/TextureRect.texture = petrified_background
+	else:
+		$Node2D/TextureRect.texture = default_background

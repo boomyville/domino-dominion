@@ -54,7 +54,8 @@ func extend_triggers(extra_triggers: int):
 
 # Override this method to handle specific events, like "damage" or "block"
 func on_event(event_type: String, data: Dictionary) -> void:
-  attached_user.update()
+  if(attached_user != null):
+    attached_user.update()
 
 # Function to apply an effect to a target
 func apply_effect(effect_instance: Effects, target):

@@ -112,7 +112,7 @@ func get_void_space():
 	return self.void_space
 
 func remove_from(selected_domino: DominoContainer, type: String):
-	print("[Battle.gd - remove_from] Removing ", selected_domino.domino_name, " from ", type)
+	#print("[Battle.gd - remove_from] Removing ", selected_domino.domino_name, " from ", type)
 	if(type.to_upper() == "DRAW" || type.to_upper() == "PILE"):
 		for domino in self.get_draw_pile():
 			if(domino.check_shadow_match(selected_domino)):
@@ -135,19 +135,49 @@ func remove_from(selected_domino: DominoContainer, type: String):
 
 func add_to_discard_pile(domino: DominoContainer, type: String = "draw"):
 	self.discard_pile.append(domino)
+	
+	# Add domino to discard pile effect
+	var effect_data = {"domino": domino, "user": self}
+	for effect in self.effects:
+		if(effect.event_type == "add_to_discard_pile"):
+			effect.on_event("add_to_discard_pile", effect_data)
+
+	# Remove petrification
+	domino.set_petrification(0)
+
 	remove_from(domino, type)
 	
 func add_to_void_space(domino: DominoContainer, type: String = "draw"):
 	self.void_space.append(domino)
+
+	# Add domino to void space effect
+	var effect_data = {"domino": domino, "user": self}
+	for effect in self.effects:
+		if(effect.event_type == "add_to_void_pile"):
+			effect.on_event("add_to_void_pile", effect_data)
+			
 	remove_from(domino, type)
 
 func add_to_draw_pile(domino: DominoContainer, type: String = "draw"):
-	self.draw_pile.append(domino)
+	self.draw_pile.append(domino)	
+
+	# Add domino to draw pile effect
+	var effect_data = {"domino": domino, "user": self}
+	for effect in self.effects:
+		if(effect.event_type == "add_to_draw_pile"):
+			effect.on_event("add_to_draw_pile", effect_data)
+
 	remove_from(domino, type)
 
 func add_to_hand(domino: DominoContainer, type: String = "pile"):
 	var collection = Game.get_node("Game").get_hand(self.battler_name)
 	
+	# Add domino to hand (non-draw effect)
+	var effect_data = {"domino": domino, "user": self}
+	for effect in self.effects:
+		if(effect.event_type == "add_to_hand"):
+			effect.on_event("add_to_hand", effect_data)
+
 	if not collection:
 		print("Error: Collection node not found.")
 		return
@@ -166,6 +196,13 @@ func add_to_hand(domino: DominoContainer, type: String = "pile"):
 	
 func add_to_deck(domino: DominoContainer, type: String):
 	domino.set_user(type)
+	
+	# Add domino to deck (permanently) effect
+	var effect_data = {"domino": domino, "user": self}
+	for effect in self.effects:
+		if(effect.event_type == "add_to_deck"):
+			effect.on_event("add_to_deck", effect_data)
+
 	self.deck.append(domino)
 
 func initialize_deck():
@@ -216,7 +253,23 @@ func set_hp(new_hp):
 	self.hp = clamp(new_hp, 0, self.max_hp)
 	update()
 
-# Function to deal damage to the player
+# Self-damage (removes all modifiers)
+func self_damage(amount, blockable: bool = true):
+	var shield_difference = self.shield - amount
+	if(!blockable):
+		self.hp -= amount
+		self.hp = clamp(self.hp, 0, self.max_hp)
+	elif shield_difference < 0:
+		self.shield = 0
+		amount = abs(shield_difference)	
+		self.hp -= amount
+	else:
+		self.shield -= amount
+		amount = 0
+	update()
+	return amount
+
+# Function to deal damage to target
 func damage(attacker, amount) -> int:
 	var damage_data = { "damage": amount, "attacker": attacker, "defender": self }
 	
@@ -237,6 +290,16 @@ func damage(attacker, amount) -> int:
 		effect.on_event("subtractive_damage", damage_data)
 
 	amount = damage_data["damage"]
+
+	for effect in attacker.effects:
+		effect.on_event("use_attack", damage_data)
+
+	if amount > 0:
+		for effect in self.effects:
+			effect.on_event("take_damage", damage_data)
+		
+		for effect in attacker.effects:
+			effect.on_event("deal_damage", damage_data)
 	
 	# Handle shield and HP adjustments based on final damage amount
 	var shield_difference = self.shield - amount
@@ -255,6 +318,7 @@ func damage(attacker, amount) -> int:
 			effect.on_event("blocked_attack", damage_data)
 		
 		self.shield -= amount
+		amount = 0
 	
 	update()
 	return amount
@@ -312,3 +376,6 @@ func on_remove_effect(buff):
 
 func on_turn_end():
 	self.dominos_played_this_turn = []
+	var effect_data = {"user": self}
+	for effect in self.effects:
+		effect.on_event("on_turn_end", effect_data)

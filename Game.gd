@@ -100,20 +100,20 @@ func initialize_battle():
 func draw_first_domino():
 	var first_domino_number = randi() % 6 + 1 # Roll a die (1-6)
 	var domino = DominoContainerScene.instance()
-	var domino2 = DominoContainerScene.instance()
-	var domino3 = DominoContainerScene.instance()
-	var domino4 = DominoContainerScene.instance()
-	var domino5 = DominoContainerScene.instance()
+	#var domino2 = DominoContainerScene.instance()
+	#var domino3 = DominoContainerScene.instance()
+	#var domino4 = DominoContainerScene.instance()
+	#var domino5 = DominoContainerScene.instance()
 	domino.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
-	domino2.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
-	domino3.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
-	domino4.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
-	domino5.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
+	#domino2.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
+	#domino3.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
+	#domino4.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
+	#domino5.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
 	play_board.add_child(domino)
-	play_board.add_child(domino2)
-	play_board.add_child(domino3)
-	play_board.add_child(domino4)
-	play_board.add_child(domino5)
+	#play_board.add_child(domino2)
+	#play_board.add_child(domino3)
+	#play_board.add_child(domino4)
+	#play_board.add_child(domino5)
 	set_played_number(first_domino_number) # Set the last played number
 
 #=====================================================
@@ -494,6 +494,10 @@ func player_start_turn():
 	for effect in player.effects:
 		effect.on_event("turn_start", effect_data)   
 		effect.update_duration(player)
+
+	# Remove petrification
+	for domino in player_hand.get_children():
+		domino.set_petrification(0)
 	
 	draw_hand(player.get_draw_per_turn(), "PLAYER", "ANY")  # Draw dominos for the player
 	draw_hand(enemy.get_draw_per_turn(), "ENEMY", "ANY")  # Draw dominos for the enemy
@@ -550,7 +554,14 @@ func draw_hand(count: int, target: String, type: String = "ANY"):
 		print("No more dominos to draw.")
 		check_game_over() # Check if the game is over
 		return
-	
+
+	# Modify count based on effects
+	var effect_data = {"user": string_to_battler(target), "draw": count} 
+	for effect in string_to_battler(target).effects:
+		effect.on_event("draw_domino", effect_data)
+
+	count = max(0, effect_data["draw"])  # Ensure count is not negative
+
 	if(type.to_upper() != "ANY"):
 		targetDrawPile = get_random_draw(type, targetDrawPile)
 	for _i in range(count):
@@ -570,6 +581,16 @@ func draw_hand(count: int, target: String, type: String = "ANY"):
 		targetDrawPile.erase(domino) # Remove it from the draw pile
 		# Set initial opacity to 0
 		domino.modulate.a = 0
+
+		# Add domino to hand effect
+		var domino_data = {"user": string_to_battler(target), "domino": domino} 
+		for effect in string_to_battler(target).effects:
+			effect.on_event("draw_to_hand", domino_data)
+
+		domino = domino_data["domino"]
+
+		count = max(0, effect_data["draw"])  # Ensure count is not negative
+
 		collection.add_child(domino)
 		animate_domino(domino, collection)
 
