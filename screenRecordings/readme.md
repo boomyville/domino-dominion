@@ -23,3 +23,13 @@ Added ability to select dominos to discard (popup for domino selection) and fixe
 
 Also made some UI tweaks to have dominos stored in a grid instead of a row
 ![Fifth Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/31October2024.gif?raw=true)
+
+Sixth build
+
+Added ability to select show dominos in draw pile / discard pile / void space 
+
+Dominos can now select other dominos and move them to different locations
+
+Added a scroll pane to the play field 
+
+![Sixth Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/8November2024.gif?raw=true)
