@@ -45,5 +45,18 @@ Added new effects:
 - Spikes (attackers take damage)
 - Fury (additive damage)
 
-![Seventh Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/CurrentBuild.gif?raw=true)
+![Seventh Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/14November2024.gif?raw=true)
+
+Eight build
+
+Added battle animations
+ - Animation Sprites
+ - Animation Player
+ - Various skill effects
+ - Damage popup
+Improved GUI
+ - Show effects
+ - HP / Shield bar
+
+![Current Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/CurrentBuild.gif?raw=true)
 
