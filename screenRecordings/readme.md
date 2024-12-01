@@ -47,7 +47,7 @@ Added new effects:
 
 ![Seventh Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/14November2024.gif?raw=true)
 
-Eight build
+Eight build (Closed source release)
 
 Added battle animations
  - Animation Sprites
@@ -60,7 +60,7 @@ Improved GUI
 
 ![Eighth Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/23November2024.gif?raw=true)
 
-Ninth build
+Ninth build (Closed source release)
 
 - Added the ability for domino numbers to be modified during battle
 - Added the ability to select dominos in hand and apply an effect to selected dominos (such as modifying their values)
