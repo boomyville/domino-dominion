@@ -58,5 +58,15 @@ Improved GUI
  - Show effects
  - HP / Shield bar
 
-![Current Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/CurrentBuild.gif?raw=true)
+![Eighth Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/23November2024.gif?raw=true)
 
+Ninth build
+
+- Added the ability for domino numbers to be modified during battle
+- Added the ability to select dominos in hand and apply an effect to selected dominos (such as modifying their values)
+- Added animations to domino numbers to indicate volatility (numbers that change every turn)
+- Added an equipment / inventory system that allows players to enhance their player character
+- Improved icons
+- Bug fix: Replaced queue_free with remove_child
+
+![Ninth Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/CurrentBuild.gif?raw=true)
