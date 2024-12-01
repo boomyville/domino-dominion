@@ -35,6 +35,7 @@ But its mainly to grow a passion of mine which is game development.
 - Iterative design and prototyping
 - Shaders
 - Using AI instead of stack overflow / reddit / Google (it still kind of sucks though)
+- Using data-driven programming (dynamic dispatch - using dictionaries to call methoods)
 
 ## Preview
 #### Current build
