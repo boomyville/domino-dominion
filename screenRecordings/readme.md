@@ -70,3 +70,8 @@ Ninth build (Closed source release)
 - Bug fix: Replaced queue_free with remove_child
 
 ![Ninth Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/CurrentBuild.gif?raw=true)
+
+Tenth Build (Closed source release)
+- Rewards
+- New enemies
+- Endless loop gameplay
