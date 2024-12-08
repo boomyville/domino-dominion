@@ -76,9 +76,17 @@ Ninth build (Closed source release)
 - Improved icons
 - Bug fix: Replaced queue_free with remove_child
 
-![Ninth Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/CurrentBuild.gif?raw=true)
+![Ninth Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/2December2024.gif?raw=true)
 
 Tenth Build (Closed source release)
-- Rewards
-- New enemies
+- Post-battle rewards (players can select a reward after battle)
+- Challenges (players can give enemy a buff / give oneself a debuff for a reward)
 - Endless loop gameplay
+- Fixed some bugs
+- Minor UI tweaks
+- New skills including manipulating the game board
+- New effect (auto-revive and impair)
+- New effect mechanics (impair halves damage and amplify doubles damage so apply one will reduce the duration of the other)
+
+![Tenth Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/CurrentBuild.gif?raw=true)
+
