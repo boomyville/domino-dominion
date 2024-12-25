@@ -88,5 +88,12 @@ Tenth Build (Closed source release)
 - New effect (auto-revive and impair)
 - New effect mechanics (impair halves damage and amplify doubles damage so apply one will reduce the duration of the other)
 
-![Tenth Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/CurrentBuild.gif?raw=true)
+![Tenth Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/9December2024.gif?raw=true)
 
+Eleventh Build (Closed source release)
+- Added new equipment, dominos (skills/attacks), enemies and status effects
+- Fixed a few bugs (still a few more to fix)
+- Added advanced stuff like ability to add temporary dominos to the game
+- Added a settings option
+
+![Elventh Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/CurrentBuild.gif?raw=true)
