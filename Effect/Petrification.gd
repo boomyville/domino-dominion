@@ -4,12 +4,13 @@ extends Effects
 
 func _init():
 	event_type = "draw_to_hand"
-	name = "Petrification"
+	effect_name = "Petrification"
+	bb_code = BBCode.bb_code_petrify()
 
 # React to the shield block event
-func on_event(event_type: String, data: Dictionary) -> void:
-	if event_type == "draw_to_hand":
+func on_event(new_event_type: String, data: Dictionary, simulate_damage: bool = false) -> void:
+	if new_event_type == "draw_to_hand":
 		data.domino.set_petrification(1)
-		if(get_triggers() != -1):
+		if(get_triggers() != -1 && !simulate_damage):
 			update_trigger(attached_user)
-	.on_event(event_type, data)
+	.on_event(new_event_type, data)

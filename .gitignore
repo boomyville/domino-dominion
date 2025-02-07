@@ -29,3 +29,15 @@ Thumbs.db
 
 # Ignore templates
 export_presets.cfg
+
+# Ignore obfuscated scripts
+/obfuscator.py
+
+# Specific folders
+Battlers/
+Busts/
+Equipment/Icons/
+Fonts/
+Icons/
+UI/
+HTML5Export/

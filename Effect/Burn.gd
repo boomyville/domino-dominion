@@ -4,17 +4,17 @@ extends Effects
 
 func _init():
 	event_type = "on_turn_end"
-	name = "Burn"
+	effect_name = "Burn"
+	bb_code = BBCode.bb_code_burn()
 
 # React to the shield block event
-func on_event(event_type: String, data: Dictionary) -> void:
+func on_event(new_event_type: String, data: Dictionary, simulate_damage: bool = false) -> void:
 	if(get_triggers() <= -1):
 		# No unlimited or negative burns
 		attached_user.effects.erase(self)
-	if event_type == "play_domino":
+	if new_event_type == "play_domino" && !simulate_damage:
 		if("Attack" in data.domino_played.filename):
 			data.user.self_damage(get_triggers(), true)
-			print("Burn! ", get_triggers(), " damage")
 			if(get_triggers() != -1):
 				update_trigger(attached_user)
-	.on_event(event_type, data)
+	.on_event(new_event_type, data)

@@ -1,0 +1,2 @@
+11/12/24
+- Sometimes dominos added to hand do not have the right/left button signal connected.

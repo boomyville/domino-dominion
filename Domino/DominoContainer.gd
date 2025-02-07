@@ -4,9 +4,21 @@ extends Container
 # Variables for the two numbers on the domino
 var number1: int = 0
 var number2: int = 0
+var number_data = {}
+
+# pip_data is used to store the range of values for the pips
+# {"left": [x, y, "type"]} Denotes the values for the left pip
+# {"right": [x, y, "type"]} Denotes the values for the right pip
+# Type is either static / dynamic / erratic / volatile
+var pip_data = {"left": [null, null, null], "right": [null, null, null]}
 var user: String = "none"
+var current_user: String = "none"
 var domino_name = ""
 var criteria = []
+# Upgrade levels; start at 1 by default
+var upgrade_level = 1
+var current_upgrade_level = 1
+var max_upgrade_level = 3
 var description = ""
 var is_mouse_in_container = false
 var battle_text;
@@ -16,89 +28,43 @@ var shader_material_domino: ShaderMaterial
 var shadow_variant: bool = false
 var selected: bool = false
 var petrification: int = 0
+var ephemeral: bool = false
+var temporary: bool = false
+var action_point_cost: int = 0
+var left_status = "" # Can be erratic or volatile
+var right_status = "" # Can be erratic or volatile
 signal domino_pressed
 signal pre_effect_complete
+signal action_completed
+
 var description_popup = preload("res://Domino/DominoPopup.tscn")
+var description_descriptor = preload("res://Domino/DominoDescriptor.tscn")
 var default_background = preload("res://Domino/DominoBackground.png")
 var petrified_background = preload("res://Domino/DominoBackgroundPetrified.png")
 
+var game = Game.get_node("Game")
+
 var dot_images = {
-	-1: preload("res://Domino/-1_dots.png"),
-	0: preload("res://Domino/0_dots.png"),
-	1: preload("res://Domino/1_dots.png"),
-	2: preload("res://Domino/2_dots.png"),
-	3: preload("res://Domino/3_dots.png"),
-	4: preload("res://Domino/4_dots.png"),
-	5: preload("res://Domino/5_dots.png"),
-	6: preload("res://Domino/6_dots.png")
+	-2: preload("res://Domino/Dots/-2_dots.png"),
+	-1: preload("res://Domino/Dots/-1_dots.png"),
+	0: preload("res://Domino/Dots/0_dots.png"),
+	1: preload("res://Domino/Dots/1_dots.png"),
+	2: preload("res://Domino/Dots/2_dots.png"),
+	3: preload("res://Domino/Dots/3_dots.png"),
+	4: preload("res://Domino/Dots/4_dots.png"),
+	5: preload("res://Domino/Dots/5_dots.png"),
+	6: preload("res://Domino/Dots/6_dots.png")
 }
 
-#================================================================
-# BB code functions
-#================================================================
+func get_criteria() -> Array:
+	return self.criteria
 
-func bb_code_dot(num: int):
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/" + str(num) + "Tile.png[/img][/font]"
+func get_domino_name() -> String:
+	return self.domino_name
 
-func bb_code_tile():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/" + str(get_numbers()[0]) + "Tile.png[/img][/font] [font=res://Fonts/VAlign.tres][img]res://Icons/" + str(get_numbers()[1]) + "Tile.png[/img][/font]"
-
-func bb_code_max_tile():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/" + str(max(get_numbers()[0], get_numbers()[1])) + "Tile.png[/img][/font]"
-
-func bb_code_min_tile():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/" + str(min(get_numbers()[0], get_numbers()[1])) + "Tile.png[/img][/font]"
-
-func bb_code_attack():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Attack.png[/img][/font]"
-
-func bb_code_double():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Double.png[/img][/font]"
-
-func bb_code_shield():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Shield.png[/img][/font]"
-
-func bb_code_discard():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Discard.png[/img][/font]"
-
-func bb_code_draw():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Draw.png[/img][/font]"
-
-func bb_code_pile():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Pile.png[/img][/font]"
-	
-func bb_code_search():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Search.png[/img][/font]"
-	
-func bb_code_vulnerable():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Vulnerable.png[/img][/font]"
-			
-func bb_code_fury():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Fury.png[/img][/font]"
-		
-func bb_code_frostbite():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Frostbite.png[/img][/font]"
-		
-func bb_code_paralysis():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Paralysis.png[/img][/font]"
-		
-func bb_code_petrify():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Petrified.png[/img][/font]"
-		
-func bb_code_burn():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Burn.png[/img][/font]"
-		
-func bb_code_spikes():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Spikes.png[/img][/font]"
-
-func bb_code_bulwark():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Bulwark.png[/img][/font]"
-
-func bb_code_nullify():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Nullify.png[/img][/font]"
-		
-func bb_code_random():
-	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Random.png[/img][/font]"
+func get_domino_type() -> String:
+	var script_path = get_script().resource_path
+	return script_path.get_base_dir().get_file()
 
 func shadow_copy() -> DominoContainer:
 	var duplicate_instance = self.duplicate()
@@ -108,9 +74,15 @@ func shadow_copy() -> DominoContainer:
 	duplicate_instance.set_script(load(self.get_script().get_path()))  # Re-attach script
 	
 	# Deep copy custom properties (if they are objects)
+	duplicate_instance.number_data = self.number_data.duplicate()
+	duplicate_instance.pip_data = self.pip_data.duplicate()
 	duplicate_instance.number1 = self.number1
 	duplicate_instance.number2 = self.number2
+	duplicate_instance.criteria = self.criteria.duplicate()
+	duplicate_instance.upgrade_level = self.upgrade_level
+	duplicate_instance.current_upgrade_level = self.current_upgrade_level
 	duplicate_instance.user = self.user
+	duplicate_instance.current_user = self.current_user
 	duplicate_instance.domino_name = self.domino_name
 	duplicate_instance.is_mouse_in_container = self.is_mouse_in_container
 	duplicate_instance.battle_text = self.battle_text
@@ -130,63 +102,172 @@ func shadow_copy() -> DominoContainer:
 	
 	return duplicate_instance
 
-
 func check_shadow_match(domino: DominoContainer) -> bool:
-	return self.number1 == domino.number1 && self.number2 == domino.number2 && domino.user == self.user && domino.domino_name == self.domino_name
+	return self.number1 == domino.number1 && self.number2 == domino.number2 && domino.user == self.user && domino.domino_name == self.domino_name && domino.upgrade_level == self.upgrade_level && domino.current_upgrade_level == self.current_upgrade_level
 
 # Function to set the numbers of the domino
 # -1 represents a wild domino (equals the last played domino number)
 
 func set_numbers(n1: int, n2: int, owner: String = ""):
-	self.number1 = n1
-	self.number2 = n2
+	if self.number1 != -2:
+		self.number1 = n1
+	if self.number2 != -2:
+		self.number2 = n2
 	if owner != "":
-		self.user = owner.to_upper()
-	print("Setting numbers: " + str(n1) + ", " + str(n2))
+		self.set_current_user(owner)
+	#print("Setting numbers: " + str(n1) + ", " + str(n2))
 	update_domino()
 
-func set_user(owner: String):
-	self.user = owner.to_upper()
+func set_user(new_user: String):
+	self.user = new_user.to_upper()
+	self.current_user = new_user.to_upper()
 	update_domino()
 
 func get_user() -> String:
 	return user
 
+func set_current_user(new_user: String):
+	self.current_user = new_user.to_upper()
+	update_domino()
+
+func get_current_user() -> String:
+	return self.current_user
+
 func get_numbers() -> Array:
 	return [number1, number2]
+
+func get_action_points() -> int:
+	return action_point_cost
+
+func set_temporary(value: bool):
+	temporary = value
+
+func is_temporary() -> bool:
+	return temporary
+
+func get_upgrade_level() -> int:
+	return current_upgrade_level
+
+func alter_upgrade_domino(value: int = 1):
+	current_upgrade_level = max(0, min(value + current_upgrade_level, self.get_max_upgrade_level() - 1))
+	#self._init()
+	self.update_domino()
+	self.initiate_domino()
+
+func get_max_upgrade_level() -> int:
+	if "common" in self.criteria or "starter" in self.criteria:
+		return 4
+	if "uncommon" in self.criteria:
+		return 3
+	if "rare" in self.criteria:
+		return 2
+	print("Error: Invalid criteria")
+	return 4
+
+func upgrade_domino(value: int = 1) -> bool:
+	if can_upgrade():
+		upgrade_level = min(value + upgrade_level, self.get_max_upgrade_level())
+		current_upgrade_level = upgrade_level
+		#self._init()
+		self.update_domino()
+		self.initiate_domino()
+		return true
+	return false
+
+func set_upgrade_level(value: int):
+	upgrade_level = max(0, min(self.get_max_upgrade_level(), value))
+	current_upgrade_level = upgrade_level
+	#self._init()
+	self.initiate_domino()
+	self.update_domino()
+
+func can_upgrade(over_upgrade = false) -> bool:
+	if (over_upgrade):
+		return upgrade_level < get_max_upgrade_level()
+	else:
+		return upgrade_level < get_max_upgrade_level() - 1
+
+# Sets maximum upgrade level based on rarity
+func initiate_domino() -> void:
+	roll_numbers("all")
 
 # Update the buttons to show the domino numbers
 func update_domino():
 
-	$DominoLabel/Label.text = self.domino_name
-
-	if(number1 >= -1):
-		#$HBoxContainer/LeftTile.text = str(number1) # Update Button1 to show number1
-		$HBoxContainer/LeftTile.set_normal_texture(dot_images[number1])
-		$HBoxContainer/LeftTile.set_pressed_texture(dot_images[number1])
-		$HBoxContainer/LeftTile.set_hover_texture(dot_images[number1])
-	#elif(number1 == -1):
-		#$HBoxContainer/LeftTile.text = "W"
+	if(number1 >= -2):
+		if(left_status == "erratic" || pip_data["left"][2] == "erratic"):
+			$HBoxContainer/LeftTile/AnimatedSprite.play(str(number1) + "_shaking")
+		elif(left_status == "volatile" || pip_data["left"][2] == "volatile"):
+			$HBoxContainer/LeftTile/AnimatedSprite.play(str(number1) + "_rainbow")
+		else:
+			$HBoxContainer/LeftTile/AnimatedSprite.play(str(number1))
 	
-	if(number2 >= -1):
-		$HBoxContainer/RightTile.set_normal_texture(dot_images[number2])
-		$HBoxContainer/RightTile.set_hover_texture(dot_images[number2])
-		$HBoxContainer/RightTile.set_pressed_texture(dot_images[number2])
-		#$HBoxContainer/RightTile.text = str(number2) # Update Button1 to show number1
-	#elif(number2 == -1):
-		#$HBoxContainer/RightTile.text = "W"
+	if(number2 >= -2):
+		if(right_status == "erratic"|| pip_data["right"][2] == "erratic"):
+			$HBoxContainer/RightTile/AnimatedSprite.play(str(number2) + "_shaking")
+		elif(right_status == "volatile" || pip_data["right"][2] == "volatile"):
+			$HBoxContainer/RightTile/AnimatedSprite.play(str(number2) + "_rainbow")
+			print("playing " + str(number2) + "_rainbow")
+		else:
+			$HBoxContainer/RightTile/AnimatedSprite.play(str(number2))
 
-	if(get_user().to_upper() == "BOARD" or get_user().to_upper() == "ENEMY"):
+	if(get_current_user().to_upper() == "BOARD"):
+		# or get_current_user().to_upper() == "ENEMY"
 		set_clickable(false)
 	else:
 		set_clickable(true)
-	#match get_user():
-		#"player":
-			#$HBoxContainer/LeftTile.modulate = Color(0, 1, 0, 1) # Green color for player
-			#$HBoxContainer/RightTile.modulate = Color(0, 1, 0, 1) # Green color for player
-		#"enemy":
-			#$HBoxContainer/LeftTile.modulate = Color(1, 0.5, 0.5, 1) # Red color for enemy
-			#$HBoxContainer/RightTile.modulate = Color(1, 0.5, 0.5, 1) # Red color for enemy
+
+	# Update action points cost
+	if(action_point_cost > 0 && user.to_upper() != "BOARD"):
+		$DominoLabel/ActionPointLabel.text = str(action_point_cost)
+		$DominoLabel/ActionPointCircle.show()
+		$DominoLabel/ActionPointLabel.show()
+	else:
+		$DominoLabel/ActionPointCircle.hide()
+		$DominoLabel/ActionPointLabel.hide()
+
+	# Set upgrade animation
+	match get_upgrade_level():
+		0, 1:
+			$Node2D/AnimatedSprite.play("default")
+			if(self.domino_name.length() > 12):
+				var nano_font = preload("res://Fonts/MicroSlim.fnt")
+				$DominoLabel/Label.add_font_override("font", nano_font)
+			else:
+				var regular_font = preload("res://Fonts/Micro.fnt")
+				$DominoLabel/Label.add_font_override("font", regular_font)
+		2:
+			$Node2D/AnimatedSprite.play("upgrade1")
+			if(self.domino_name.length() > 12):
+				var nano_font = preload("res://Fonts/MicroSlimGreen.fnt")
+				$DominoLabel/Label.add_font_override("font", nano_font)
+			else:
+				var regular_font = preload("res://Fonts/MicroGreen.fnt")
+				$DominoLabel/Label.add_font_override("font", regular_font)
+		3:
+			$Node2D/AnimatedSprite.play("upgrade2")
+			if(self.domino_name.length() > 12):
+				var nano_font = preload("res://Fonts/MicroSlimGold.fnt")
+				$DominoLabel/Label.add_font_override("font", nano_font)
+			else:
+				var regular_font = preload("res://Fonts/MicroGold.fnt")
+				$DominoLabel/Label.add_font_override("font", regular_font)
+		4:	
+			$Node2D/AnimatedSprite.play("upgrade3")
+			if(self.domino_name.length() > 12):
+				var nano_font = preload("res://Fonts/MicroSlimRed.fnt")
+				$DominoLabel/Label.add_font_override("font", nano_font)
+			else:
+				var regular_font = preload("res://Fonts/MicroRed.fnt")
+				$DominoLabel/Label.add_font_override("font", regular_font)
+		_:
+			$Node2D/AnimatedSprite.play("default")
+			if(self.domino_name.length() > 12):
+				var nano_font = preload("res://Fonts/MicroSlim.fnt")
+				$DominoLabel/Label.add_font_override("font", nano_font)
+			else:
+				var regular_font = preload("res://Fonts/MicroSlim.fnt")
+				$DominoLabel/Label.add_font_override("font", regular_font)
 
 func set_clickable(clickable: bool):
 	$HBoxContainer/LeftTile.disabled = not clickable # Disable Button1 if not clickable
@@ -198,6 +279,12 @@ func set_clickable(clickable: bool):
 		$HBoxContainer/LeftTile.focus_mode = Control.FOCUS_CLICK
 		$HBoxContainer/RightTile.focus_mode = Control.FOCUS_CLICK	
 
+func reset_domino_state():
+	#print(domino_name, " reset. Clickable: ", !$HBoxContainer/LeftTile.disabled)
+	set_ephemeral(false)
+	set_petrification(0)
+	set_upgrade_level(upgrade_level)
+
 func get_non_matching_values(arr: Array, value: int) -> Array:
 	var non_matching_values = []
 	for element in arr:
@@ -205,13 +292,19 @@ func get_non_matching_values(arr: Array, value: int) -> Array:
 			non_matching_values.append(element)
 	return non_matching_values
 
-func can_play(last_played_number: int, user, target, pressed_number: int = get_numbers()[0]) -> String:
+func can_play(last_played_number: int, playing_user, target, pressed_number: int = get_numbers()[0]) -> String:
 	var result = "unplayable"
 
-	if Game.get_node("Game").game_state != Game.get_node("Game").GameState.DEFAULT || is_petrified():
+	if game.game_state != game.GameState.DEFAULT:
 		return result # Unplayable if not in default game state or petrified
-	elif(requirements(user, target) == false):
-		result = "prohibited"
+	elif is_petrified():
+		return "petrification" 
+	elif action_point_cost > playing_user.action_points:
+		return "action_points_deficiency" 
+	elif(requirements(playing_user, target) == false):
+		return "prohibited"
+	elif(get_numbers()[0] == -2 || get_numbers()[1] == -2):
+		return "locked"
 	elif(pressed_number == last_played_number || pressed_number == -1 || last_played_number == -1):
 		if(get_numbers()[0] == pressed_number):
 			result = "playable"
@@ -222,10 +315,10 @@ func can_play(last_played_number: int, user, target, pressed_number: int = get_n
 	elif(get_numbers()[1] == -1 || get_numbers()[1] == last_played_number):
 		result = "swap"
 
-	var effect_data = {"user": user, "target": target, "domino_played": self, "result": result}
+	var effect_data = {"user": playing_user, "target": target, "domino_played": self, "result": result}
 
 	if(result == "swap"):
-		for effect in user.effects:
+		for effect in playing_user.effects:
 			effect.on_event("after_swap", effect_data)
 		result = effect_data["result"]
 
@@ -240,6 +333,9 @@ func swap_values():
 
 # Called when the node enters the scene tree for the first time
 func _ready():
+
+	$DominoLabel/Label.text = self.domino_name
+	
 	shader_material_left = ShaderMaterial.new()
 	shader_material_right = ShaderMaterial.new()
 	shader_material_domino = ShaderMaterial.new()
@@ -257,48 +353,77 @@ func _ready():
 	shader_material_right.set_shader_param("outline_color", Color(1.0, 0.0, 0.0, 1.0))
 	shader_material_domino.set_shader_param("outline_color", Color(0.0, 1.0, 0.0, 1.0))
 	
-	$HBoxContainer/LeftTile.material = shader_material_left
-	$HBoxContainer/RightTile.material = shader_material_right
+	$HBoxContainer/LeftTile.get_node("AnimatedSprite").material = shader_material_left
+	$HBoxContainer/RightTile.get_node("AnimatedSprite").material = shader_material_right
 	$Node2D/TextureRect.material = shader_material_domino
 	
 	$HBoxContainer/LeftTile.rect_min_size = Vector2(48, 48)
 	$HBoxContainer/RightTile.rect_min_size = Vector2(48,48)
-	$HBoxContainer/LeftTile.connect("pressed", self, "_on_left_button_pressed") # Connect HBoxContainer/LeftTile button
-	$HBoxContainer/RightTile.connect("pressed", self, "_on_right_button_pressed") # Connect HBoxContainer/RightTile button
+	
+	var left_tile_click_connection = $HBoxContainer/LeftTile.connect("pressed", self, "_on_left_button_pressed") # Connect HBoxContainer/LeftTile button
+	var right_tile_click_connection =	$HBoxContainer/RightTile.connect("pressed", self, "_on_right_button_pressed") # Connect HBoxContainer/RightTile button
+	if left_tile_click_connection != OK:
+		push_error("Failed to connect signal. Error code: %s" % left_tile_click_connection)
+	if right_tile_click_connection != OK:
+		push_error("Failed to connect signal. Error code: %s" % right_tile_click_connection)
 
-	$HBoxContainer/RightTile.connect("mouse_entered", self, "_on_button_hovered", [$HBoxContainer/RightTile])
-	$HBoxContainer/RightTile.connect("mouse_exited", self, "_on_button_hover_exited", [$HBoxContainer/RightTile])
+	var right_tile_mouse_enter_connection = $HBoxContainer/RightTile.connect("mouse_entered", self, "_on_button_hovered", [$HBoxContainer/RightTile])
+	var right_tile_mouse_exit_connection = $HBoxContainer/RightTile.connect("mouse_exited", self, "_on_button_hover_exited", [$HBoxContainer/RightTile])
+	if right_tile_mouse_enter_connection != OK:
+		push_error("Failed to connect signal. Error code: %s" % right_tile_mouse_enter_connection)
+	if right_tile_mouse_exit_connection != OK:
+		push_error("Failed to connect signal. Error code: %s" % right_tile_mouse_exit_connection)
 
-	$HBoxContainer/LeftTile.connect("mouse_entered", self, "_on_button_hovered", [$HBoxContainer/LeftTile])
-	$HBoxContainer/LeftTile.connect("mouse_exited", self, "_on_button_hover_exited", [$HBoxContainer/LeftTile])
+	var left_tile_mouse_exit_connection = $HBoxContainer/LeftTile.connect("mouse_entered", self, "_on_button_hovered", [$HBoxContainer/LeftTile])
+	var left_tile_mouse_enter_connection = 	$HBoxContainer/LeftTile.connect("mouse_exited", self, "_on_button_hover_exited", [$HBoxContainer/LeftTile])
+	if left_tile_mouse_exit_connection != OK:
+		push_error("Failed to connect signal. Error code: %s" % left_tile_mouse_exit_connection)
+	if left_tile_mouse_enter_connection != OK:
+		push_error("Failed to connect signal. Error code: %s" % left_tile_mouse_enter_connection)
 
-	$Node2D/TextureRect.connect("mouse_entered", self, "_on_domino_mouse_entered")
-	$Node2D/TextureRect.connect("mouse_exited", self, "_on_domino_mouse_exited")
+	#$Node2D/TextureRect.connect("mouse_entered", self, "_on_domino_mouse_entered")
+	#$Node2D/TextureRect.connect("mouse_exited", self, "_on_domino_mouse_exited")
 
 	update_domino()
 	
-
 # Highlight based on playability
 func update_highlight(can_play: bool):
-	if(self.user.to_upper() == "PLAYER"):
+	if(self.user.to_upper() == "PLAYER" && $Node2D/TextureRect.material != null):
 		$Node2D/TextureRect.material.set_shader_param("outline_enabled", can_play)
 
-func random_value(value: int = 6):
-	return randi() % int(max(1, value)) + 1 
+func set_pip_data(left_min_range: int = 1, left_max_range: int = 6, right_min_range: int = 1, right_max_range: int = 6, left_type: String = "dynamic", right_type: String = "dynamic"):
+	pip_data["left"] = [left_min_range, left_max_range, left_type]
+	pip_data["right"] = [right_min_range, right_max_range, right_type]
 
+# Static / Dynamic / Erratic / Volatile
+func roll_numbers(type: String = "dynamic"):
+	if pip_data["left"][2] == type || type == "all":
+		number_data[0] = random_range(pip_data["left"][0], pip_data["left"][1])
+	if pip_data["right"][2] == type || type == "all":
+		number_data[1] = random_range(pip_data["right"][0], pip_data["right"][1])
+		#print("Rolling numbers: ", number1, number2, " | Type: ", type, " | Domino: ", domino_name)
+	
+	if(number_data.size() == 0):
+		print(self.domino_name, " has no pip data")
 
-func random_value_range(value: int = 0, value2: int = 6):
-	return randi() % int(max(1, value2 - value)) + value
+	number1 = number_data[0]["value"]
+	number2 = number_data[1]["value"]
+	update_domino()
+		
+func random_range(min_value: int, max_value):
+	if max_value == null:
+		return {
+			"value": min_value,
+			"range": [min_value]
+		}
+	else :
+		return {
+			"value": randi() % (max_value - min_value + 1) + min_value,
+			"range": [min_value, max_value]
+		}
 
-
-func unique_random_value(arr: Array):
-	var array = [1, 2, 3, 4, 5, 6]
-	var result = []
-	for item in array:
-		if not arr.has(item):
-			result.append(item)
-	result.shuffle()
-	return result[0]
+func random_value(max_value: int = 6):
+	return random_range(1, max_value)["value"]
 
 # Handle left button press and emit signal with number1
 func _on_left_button_pressed():
@@ -309,41 +434,41 @@ func _on_right_button_pressed():
 	emit_signal("domino_pressed", self, number2) # Emit signal with number2 and self (domino container)
 
 # Handle mouse enter - turn outline on
-func _on_button_hovered(button: TextureButton):
-	var material = button.material as ShaderMaterial # Red dot outline
+func _on_button_hovered(button):
+	var material = button.get_node("AnimatedSprite").material as ShaderMaterial # Red dot outline
 	var material2 = $Node2D/TextureRect.material as ShaderMaterial # Green outline
 
 	# Only apply hover effects based on the mode (popup vs. main game)
-	if shadow_variant && self.user.to_upper() == "PLAYER" and Game.get_node("Game").is_selection():
+	if shadow_variant && self.user.to_upper() == "PLAYER" and game.is_selection():
 		# Use material2 for popups
 		if material2:
 			material2.set_shader_param("outline_enabled", true)
 		# Show description specific to the popup domino
 		
-		if Game.get_node("Game").touch_mode == false:
+		if game.touch_mode == false:
 			show_domino_description(self)
 	
-	elif !shadow_variant &&  material and self.user.to_upper() == "PLAYER" and Game.get_node("Game").game_state_default():
+	elif !shadow_variant &&  material and self.user.to_upper() == "PLAYER" and game.game_state_default():
 		material.set_shader_param("outline_enabled", true)
 		
-		if Game.get_node("Game").touch_mode == false:
+		if game.touch_mode == false:
 			show_domino_description(self)
 
 # Handle mouse exit - turn outline off
-func _on_button_hover_exited(button: TextureButton):
-	var material = button.material as ShaderMaterial # Red dot outline
+func _on_button_hover_exited(button):
+	var material = button.get_node("AnimatedSprite").material as ShaderMaterial # Red dot outline
 	var material2 = $Node2D/TextureRect.material as ShaderMaterial # Green outline
 
-	if material and Game.get_node("Game").game_state_default():
+	if material and game.game_state_default():
 		material.set_shader_param("outline_enabled", false)
-	elif(material2 and Game.get_node("Game").is_selection() && !selected && shadow_variant):
+	elif(material2 and game.is_selection() && !selected && shadow_variant):
 		material2.set_shader_param("outline_enabled", false)
-	if Game.get_node("Game").touch_mode == false:
+	if game.touch_mode == false:
 		hide_domino_description(false)
 
 func clear_highlight():
-	$HBoxContainer/LeftTile.material.set_shader_param("outline_enabled", false)
-	$HBoxContainer/RightTile.material.set_shader_param("outline_enabled", false)
+	$HBoxContainer/LeftTile.get_node("AnimatedSprite").material.set_shader_param("outline_enabled", false)
+	$HBoxContainer/RightTile.get_node("AnimatedSprite").material.set_shader_param("outline_enabled", false)
 	$Node2D/TextureRect.material.set_shader_param("outline_enabled", false)
 
 func set_clicked(clicked: bool):
@@ -357,7 +482,10 @@ func set_clicked(clicked: bool):
 		shader_material_domino.set_shader_param("outline_color", Color(0.0, 1.0, 0.0, 1.0))
 
 func requirements(origin, target):
-	return true
+	for effect in origin.effects:
+		if effect.on_event("domino_requirements", {"user": origin, "target": target, "domino_played": self}) == false:
+			return false
+	return true 
 	#print("Origin: ", origin, " | Domino: ", domino_name)
 
 func effect(origin, target):
@@ -370,17 +498,20 @@ func effect(origin, target):
 	origin.dominos_played.append(self)
 	origin.dominos_played_this_turn.append(self)
 
-func attack_message(origin, target, damage, repeat: int = 1):
-	var suffix = "!"
-	if(repeat > 1):
-		suffix = " " + str(repeat) + "times!"
-	Game.get_node("Game").update_battle_text(origin.name() + " used " + domino_name + " on " + target.name() + " for " + str(damage) + " damage" + suffix)
+func attack_message(origin, target, damage) -> int:
+	game.update_battle_text(origin.get_name() + " used " + domino_name + " on " + target.get_name() + " for " + str(damage) + " damage!")	
+	return damage
 
 func shield_message(origin, target, shield):
-	Game.get_node("Game").update_battle_text(origin.name() + " used " + domino_name + " and " + target.name() + " gained " + str(shield) + " shield(s)!")
+	game.update_battle_text(origin.get_name() + " used " + domino_name + " and " + target.get_name() + " gained " + str(shield) + " shield(s)!")
+	return shield
 
-func apply_effect(effect, target):
+func apply_effect(effect, target, value = 0):
 	target.apply_effect(effect)
+	var value_string = ""
+	if value > 0:
+		value_string = str(value)
+	game.show_popup(value_string + effect.bb_code, target, "White", "PopupRiseAnimation")
 
 #================================
 # Description Popup
@@ -389,62 +520,159 @@ func apply_effect(effect, target):
 # Show domino description with a flag for popup vs main game
 func show_domino_description(domino):
 	# If it's a popup clone, show description in a specific way
-	if Game.get_node("Game").is_selection():
-		var popup = description_popup.instance()  # Assuming Popup is your description UI element
-		add_child(popup)
+	if game.is_selection():
 
-		# Set the popup description
-		popup.set_description("[center]" +  domino.description + "[/center]")	
-		
-		# Get the window width
-		var window_width = get_viewport_rect().size.x
+		if(game.detailed_descriptors == false):
+			var popup = description_popup.instance()  # Assuming Popup is your description UI element
+			add_child(popup)
 
-		# Calculate the popup's position centered above the domino
-		var popup_position_x = domino.get_global_position().x - (popup.rect_min_size.x - domino.rect_size.x) / 2
-		var popup_position_y = domino.get_global_position().y - popup.rect_min_size.y -  domino.rect_size.y / 2
+			# Set the popup description
+			popup.set_description("[center]" +  domino.get_description() + "[/center]")	
+			
+			# Get the window width
+			var window_width = get_viewport_rect().size.x
 
-		# Adjust to keep the popup within the screen bounds
-		popup_position_x = max(0, min(popup_position_x, window_width - popup.rect_min_size.x))
+			# Calculate the popup's position centered above the domino
+			var popup_position_x = domino.get_global_position().x - (popup.rect_min_size.x - domino.rect_size.x) / 2
+			var popup_position_y = domino.get_global_position().y - popup.rect_min_size.y -  domino.rect_size.y / 2
 
-		# Set the popup position
-		popup.rect_global_position = Vector2(popup_position_x, popup_position_y)
-		
-		# Display the popup
-		popup.popup()
+			# Adjust to keep the popup within the screen bounds
+			popup_position_x = max(0, min(popup_position_x, window_width - popup.rect_min_size.x))
+
+			# Set the popup position
+			popup.rect_global_position = Vector2(popup_position_x, popup_position_y)
+			
+			# Display the popup
+			popup.popup()
+		else:
+			# Show detailed domino description
+			var popup = description_descriptor.instance()
+			add_child(popup)
+			popup.get_node("Control/Popup/Node2D").set_type(popup.get_node("Control/Popup/Node2D").reward_type.DOMINO)
+			popup.get_node("Control").initialise(self)
 	else:
 		# Existing description logic for main game dominos
 		if has_node("DominoPopup"):
 			get_node("DominoPopup").queue_free()
-		var popup = description_popup.instance()  # Assuming Popup is your description UI element
-		add_child(popup)
+			var popup = description_popup.instance()  # Assuming Popup is your description UI element
+			# Set the popup description
+			popup.set_description("[center]" + domino.get_description() + "[/center]")	
+			
+			# Get the window width
+			var window_width = get_viewport_rect().size.x
 
-		# Set the popup description
-		popup.set_description("[center]" +  domino.description + "[/center]")	
-		
-		# Get the window width
-		var window_width = get_viewport_rect().size.x
+			# Calculate the popup's position centered above the domino
+			var popup_position_x = domino.get_global_position().x - (popup.rect_min_size.x - domino.rect_size.x) / 2
+			var popup_position_y = domino.get_global_position().y - popup.rect_min_size.y -  domino.rect_size.y / 2
 
-		# Calculate the popup's position centered above the domino
-		var popup_position_x = domino.get_global_position().x - (popup.rect_min_size.x - domino.rect_size.x) / 2
-		var popup_position_y = domino.get_global_position().y - popup.rect_min_size.y -  domino.rect_size.y / 2
+			# Adjust to keep the popup within the screen bounds
+			popup_position_x = max(0, min(popup_position_x, window_width - popup.rect_min_size.x))
 
-		# Adjust to keep the popup within the screen bounds
-		popup_position_x = max(0, min(popup_position_x, window_width - popup.rect_min_size.x))
-
-		# Set the popup position
-		popup.rect_global_position = Vector2(popup_position_x, popup_position_y)
-		
-		# Display the popup
-		popup.popup()
+			# Set the popup position
+			popup.rect_global_position = Vector2(popup_position_x, popup_position_y)
+			
+			# Display the popup
+			popup.popup()
+			add_child(popup)
+		if has_node("DominoDescriptor"):
+			get_node("DominoDescriptor").queue_free()
+			# Show detailed domino description
+			var popup = description_descriptor.instance()
+			add_child(popup)
+			popup.initialise(self)
 
 func hide_domino_description(is_popup: bool = false):
 	if is_popup:
 		if has_node("Popup"):  # Assuming "Popup" is the name of the description popup node
 			get_node("Popup").queue_free()  # Remove popup for the clone
+			
 	else:
 		if has_node("DominoPopup"):
 			get_node("DominoPopup").queue_free()  # Remove popup for the main game domino
+		if has_node("DominoDescriptor"):
+			get_node("DominoDescriptor").queue_free()  # Remove popup for the main game domino
 
+func get_description() -> String:
+	return ""
+
+func get_detailed_description() -> String:
+	return ""
+
+func get_damage_value(amount: int) -> int:
+	return game.damage_battler(game.string_to_battler(get_user()), null, amount, true)
+
+func get_shield_value(amount: int) -> int:
+	return game.self_shield(game.string_to_battler(get_user()), amount, true)
+
+
+func get_pip_description() -> String:
+	# Static - Number does not change (set at pick up)
+	# Dynamic - Number changes when domino is drawn
+	# Erratic - Number changes at the start of the turn
+	# Volatile - Number changes after a domino is played
+	var msg = ""
+	if (pip_data["left"][0] != null):
+		msg = "Left pip: " + pip_data["left"][2].capitalize() + " ";
+		if(pip_data["left"][1] == null):	
+			if pip_data["left"][0] == -1:
+				msg += "(Wild)"
+			elif pip_data["left"][0] == -2:
+				msg += "(X)"
+			else:
+				msg += "(" + str(pip_data["left"][0]) + ")"
+		else:
+			msg += "(" + str(pip_data["left"][0]) + "-" + str(pip_data["left"][1]) + ")"
+		msg += "\n"
+		msg += "Right pip: " + pip_data["right"][2].capitalize() + " ";
+		if(pip_data["right"][1] == null):	
+			if pip_data["right"][0] == -1:
+				msg += "(Wild)"
+			elif pip_data["right"][0] == -2:
+				msg += "(X)"
+			else:
+				msg += "(" + str(pip_data["right"][0]) + ")"
+		else:
+			msg += "(" + str(pip_data["right"][0]) + "-" + str(pip_data["right"][1]) + ")"
+		msg += "\n"
+	else: 
+		msg = "Left pip: " + left_status.capitalize() + " ";
+
+		if number_data[0]["range"].size() == 1:
+			if(number_data[0]["range"][0] == -1):
+				msg += "(Wild)"
+			elif(number_data[0]["range"][0] == -2):
+				msg += "(X)"
+			else:
+				msg += "(" + str(number_data[0]["range"][0]) + ")"
+		elif number_data[0]["range"].size() == 2:
+			msg += "(" + str(number_data[0]["range"][0]) + "-" + str(number_data[0]["range"][1]) + ")"
+		
+		msg += "\n"
+		
+		msg += "Right pip: " + right_status.capitalize() + " ";
+
+		if number_data[1]["range"].size() == 1:
+			if(number_data[1]["range"][0] == -1):
+				msg += "(Wild)"
+			elif(number_data[0]["range"][0] == -2):
+				msg += "(X)"
+			else:
+				msg += "(" + str(number_data[1]["range"][0]) + ")"
+		elif number_data[1]["range"].size() == 2:
+			msg += "(" + str(number_data[1]["range"][0]) + "-" + str(number_data[1]["range"][1]) + ")"
+		
+		msg += "\n"
+
+	if("top_stack" in self.criteria):
+		print("Top Stack (Drawn first)")
+		msg += "Top Stack (Drawn first)\n"
+	if("bottom_stack" in self.criteria):
+		msg += "Bottom Stack (Drawn last)\n"
+
+	if(ephemeral):
+		msg += "Ephemeral (Void at turn end)\n"
+	msg += "\n"
+	return msg
 #================================================================
 # Domino repositioning
 #================================================================
@@ -455,6 +683,9 @@ func final_domino_position(position: int, collection):
 	if(collection is GridContainer):
 		target_positionX = position % collection.columns * (self.get_combined_minimum_size().x + collection.get_constant("hseparation"))
 		target_positionY = floor(position / collection.columns) * (self.get_combined_minimum_size().y + collection.get_constant("vseparation"))	
+	elif(collection is HBoxContainer):
+		target_positionX = position % collection.columns * (self.get_combined_minimum_size().x + collection.get_constant("hseparation"))
+		target_positionY = floor(position / collection.columns) * (self.get_combined_minimum_size().y + collection.get_constant("vseparation"))	
 	else:
 		target_positionX = position * (self.get_combined_minimum_size().x + collection.get_constant("hseparation"))
 		target_positionY = 0
@@ -463,16 +694,252 @@ func final_domino_position(position: int, collection):
 #================================================================
 # Domino specified effects
 #   - Petrification
+#   - Ephemeral
+#   - Uptick / Downtick
+#	- Reroll
 #================================================================
+func uptick(value_change: int):
+	if number1 >= 0:
+		number1 = int(max(1, max(6, number1 + value_change)))
+	if number2 >= 0:
+		number2 = int(max(1, max(6, number2 + value_change)))
+	update_domino()
+
+func discard_effect(_origin, _target):
+	return
+
+func reroll(max_value: int = 6):
+	set_numbers(random_value(max_value), random_value(max_value), user)
+
 func set_petrification(value: int):
 	petrification = value
 	update_background()
 
+func set_ephemeral(value: bool):
+	ephemeral = value
+	update_background()
+
 func is_petrified() -> bool:
 	return petrification > 0
+
+func is_ephemeral() -> bool:
+	return ephemeral
 
 func update_background():
 	if is_petrified():
 		$Node2D/TextureRect.texture = petrified_background
 	else:
 		$Node2D/TextureRect.texture = default_background
+	if is_ephemeral() and user.to_upper() == "PLAYER":
+		$Node2D/TextureRect.modulate = Color(1.0, 1.0, 1.0, 0.75)
+	else:
+		$Node2D/TextureRect.modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+#================================================================
+# Domino turn effects (mainly re-rolling numbers)
+#================================================================
+func on_battle_start():
+	# Dynamic / Called at the start of battle on all dominos in the draw pile
+	roll_numbers("dynamic")
+
+func on_turn_start():
+	# Erratic / Called at the end of the turn on all dominos in hand
+	roll_numbers("erratic")
+
+func on_play():
+	print("Volatile!")
+	# Volatile / Called after a domino is played on all dominos in hand
+	roll_numbers("volatile")
+
+#================================================================
+# Animation effects
+#================================================================
+
+func basic_attack(attacker, defender, type = "slash", outcome = 0, animation = null):
+	game.set_game_state(game.GameState.WAITING)
+	attacker.get_node("AnimationPlayer").play(attacker.battler_type.to_lower() + "_hop_towards")
+	yield(get_tree().create_timer(attacker.get_node("AnimationPlayer").get_animation(attacker.battler_type.to_lower() + "_hop_towards").length), "timeout")
+	
+	attacker.get_node("AnimatedSprite").play(type)
+	yield(get_tree().create_timer(0.5), "timeout")
+	defender.damage_pose(outcome)
+
+	# Add to the current scene (or a specific parent node)
+	var animation_instance = animation.instance()
+	defender.get_node("AnimationLayer").add_child(animation_instance)
+	animation_instance.play_animation(defender)
+	yield(animation_instance, "animation_finished")
+
+	attacker.get_node("AnimationPlayer").play(attacker.battler_type.to_lower() + "_hop_away")
+	yield(get_tree().create_timer(0.5), "timeout")	
+	emit_signal("action_completed")  # Notify that this domino's action is done
+
+func quick_attack(attacker, defender,  outcome = "damage", approach = "zoom_in", retreat = "hop_away", animation = null, defender_animation = null):
+	game.set_game_state(game.GameState.WAITING)
+	attacker.get_node("AnimationPlayer").play(attacker.battler_type.to_lower() + "_" + approach)
+	yield(get_tree().create_timer(attacker.get_node("AnimationPlayer").get_animation(attacker.battler_type.to_lower() + "_" + approach).length), "timeout")
+	
+	if(defender_animation != null):
+		defender.get_node("AnimationPlayer").play(defender.battler_type.to_lower() + "_" + defender_animation)
+		yield(get_tree().create_timer(0.5), "timeout")
+	
+	defender.damage_pose(outcome)
+	
+	# Add to the current scene (or a specific parent node)
+	var animation_instance = animation.instance()
+	defender.get_node("AnimationLayer").add_child(animation_instance)
+	animation_instance.play_animation(defender)
+
+	yield(get_tree().create_timer(0.5), "timeout")
+	attacker.get_node("AnimationPlayer").play(attacker.battler_type.to_lower() + "_" + retreat)
+	yield(get_tree().create_timer(0.5), "timeout")
+	emit_signal("action_completed")  # Notify that this domino's action is done
+
+func multi_attack(attacker, defender, outcome_array: Array = [], animation_array: Array=[], pose_array: Array = [], approach_pose: String = "zoom_in", retreat_pose: String = "hop_away"):
+	game.set_game_state(game.GameState.WAITING)
+	attacker.get_node("AnimationPlayer").play(attacker.battler_type.to_lower() + "_" + approach_pose)
+	yield(get_tree().create_timer(0.5), "timeout")
+	
+	# Check  if animation and outcome arrays are the same length
+	if(outcome_array.size() != animation_array.size() && animation_array.size() != pose_array.size()):
+		print("Error: Animation, pose and outcome arrays must be the same length")
+	else:
+		for i in range(pose_array.size()):
+			# Special poses:
+				# jump_attack
+				# rise_and_fall
+
+			if(pose_array[i] == "jump_attack"): # To implement
+				attacker.get_node("AnimatedSprite").play("rise")
+				yield(get_tree().create_timer(0.5), "timeout")
+				attacker.get_node("AnimatedSprite").play("fall")
+				yield(get_tree().create_timer(0.5), "timeout")
+			elif(pose_array[i] == "rise_and_fall"):		
+				attacker.get_node("AnimatedSprite").play("rise")
+				yield(get_tree().create_timer(0.5), "timeout")
+				attacker.get_node("AnimatedSprite").play("fall")
+				yield(get_tree().create_timer(0.5), "timeout")
+			else:
+				attacker.get_node("AnimatedSprite").play(pose_array[i])
+				yield(get_tree().create_timer(0.5), "timeout")
+			
+			defender.damage_pose(outcome_array[i])
+			
+			# Add to the current scene (or a specific parent node)
+			var animation_instance = animation_array[i].instance()
+			defender.get_node("AnimationLayer").add_child(animation_instance)
+			animation_instance.play_animation(defender)
+			
+			yield(get_tree().create_timer(0.5), "timeout")
+		
+		attacker.get_node("AnimationPlayer").play(attacker.battler_type.to_lower() + "_" + retreat_pose)
+		yield(get_tree().create_timer(0.5), "timeout")
+
+		attacker.get_node("AnimatedSprite").play("idle")
+		emit_signal("action_completed") 
+
+# This method incorporates attack_message 
+# attack_message(origin, target, target.damage(origin, x))
+func multi_hit_attack(attacker, defender, type = "slash", damage_value: int = 0, animation = null, approach: String = "hop_towards", times: int = 1):
+	game.set_game_state(game.GameState.WAITING)
+	attacker.get_node("AnimationPlayer").play(attacker.battler_type.to_lower() + "_" + approach)
+	yield(get_tree().create_timer(attacker.get_node("AnimationPlayer").get_animation(attacker.battler_type.to_lower()  + "_" + approach).length), "timeout")
+	
+	attacker.get_node("AnimatedSprite").play(type)
+	yield(get_tree().create_timer(0.5), "timeout")
+
+	# Multi-hit
+	var animation_instance = animation.instance()
+	defender.get_node("AnimationLayer").add_child(animation_instance)
+	animation_instance.play_animation(defender)
+
+	for _i in range(times):
+		var outcome = attack_message(attacker, defender, defender.damage(attacker, damage_value))
+		defender.damage_pose(outcome)
+		yield(get_tree().create_timer(0.5), "timeout")
+
+
+	attacker.get_node("AnimationPlayer").play(attacker.battler_type.to_lower() + "_hop_away")
+	yield(get_tree().create_timer(0.5), "timeout")	
+	emit_signal("action_completed")  # Notify that this domino's action is done
+	
+
+func charge_up(origin, animation):
+	game.set_game_state(game.GameState.WAITING)
+	origin.get_node("AnimatedSprite").play("spell")
+
+	var animation_instance = animation.instance()
+	origin.get_node("AnimationLayer").add_child(animation_instance)
+	animation_instance.play_animation(origin)
+	yield(get_tree().create_timer(0.5), "timeout")
+
+	origin.get_node("AnimatedSprite").play("idle")
+
+func charge_smash(attacker, defender, outcome: int = 0, charge_animation = null, animation = null):
+	game.set_game_state(game.GameState.WAITING)
+	attacker.get_node("AnimationPlayer").play(attacker.battler_type.to_lower() + "_hop_towards")
+	yield(get_tree().create_timer(0.8), "timeout")
+
+	if(charge_animation != null):
+		var animation_instance = charge_animation.instance()
+		attacker.get_node("AnimationLayer").add_child(animation_instance)
+		animation_instance.play_animation(attacker)
+	attacker.get_node("AnimatedSprite").play("rise")
+	yield(get_tree().create_timer(0.5), "timeout")
+
+	defender.damage_pose(outcome)
+	
+	# Add to the current scene (or a specific parent node)
+	if (animation != null):
+		var animation_instance2 = animation.instance()
+		defender.get_node("AnimationLayer").add_child(animation_instance2)
+		animation_instance2.play_animation(defender)
+	
+	attacker.get_node("AnimatedSprite").play("fall")
+
+	yield(get_tree().create_timer(0.5), "timeout")
+	attacker.get_node("AnimationPlayer").play(attacker.battler_type.to_lower() + "_hop_away")
+	yield(get_tree().create_timer(0.5), "timeout")	
+	emit_signal("action_completed") 
+
+func spell(attacker, defender, outcome: int = 0, pose: String = "spell", animation = null, buff_string: String = ""):
+	game.set_game_state(game.GameState.WAITING)
+	attacker.change_pose(pose)
+	
+	yield(get_tree().create_timer(0.5), "timeout")
+
+	var animation_instance = animation.instance()
+	defender.get_node("AnimationLayer").add_child(animation_instance)
+	
+	animation_flip_for_enemy(attacker, animation_instance)
+
+	animation_instance.play_animation(defender)
+	yield(get_tree().create_timer(0.5), "timeout")
+
+	if(attacker == defender):
+		attacker.change_pose("idle")
+		attacker.buff_pose(outcome, buff_string)
+	else:
+		defender.damage_pose(outcome)
+		attacker.change_pose("idle")
+
+	yield(get_tree().create_timer(0.5), "timeout")	
+	emit_signal("action_completed") 
+
+func animation_flip_for_enemy(target, animation_instance):
+	if target.battler_type.to_upper() == "ENEMY":
+		animation_instance.scale.x = -1
+	else:
+		animation_instance.scale.x = 1
+
+#================================================================
+# Debug
+#================================================================
+func show_details():
+	print("Domino: ", domino_name,
+	"Unclickable: ", $HBoxContainer/LeftTile.disabled,
+	" User: ", user,
+	" Current User: ", current_user,
+	" Mouse In Container: ", is_mouse_in_container,
+	" Selected: ", selected)
+	

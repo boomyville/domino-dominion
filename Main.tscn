@@ -1,8 +1,6 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=4 format=2]
 
 [ext_resource path="res://Game.gd" type="Script" id=1]
-[ext_resource path="res://Battler.gd" type="Script" id=2]
-[ext_resource path="res://PlayerHP.gd" type="Script" id=3]
 [ext_resource path="res://Fonts/MicroWhite.fnt" type="BitmapFont" id=4]
 [ext_resource path="res://Domino/TextBoxWhiteTheme.tres" type="Theme" id=5]
 
@@ -11,14 +9,13 @@
 [node name="Game" type="Node2D" parent="."]
 script = ExtResource( 1 )
 
-[node name="Battler" type="Node" parent="Game"]
-script = ExtResource( 2 )
-
 [node name="PlayBoard" type="ScrollContainer" parent="."]
-margin_top = 80.0
-margin_right = 600.0
-margin_bottom = 170.0
+margin_left = 20.0
+margin_top = 100.0
+margin_right = 620.0
+margin_bottom = 190.0
 rect_min_size = Vector2( 600, 90 )
+mouse_filter = 2
 follow_focus = true
 scroll_vertical_enabled = false
 
@@ -26,145 +23,29 @@ scroll_vertical_enabled = false
 margin_right = 600.0
 margin_bottom = 60.0
 rect_min_size = Vector2( 600, 60 )
+mouse_filter = 2
 custom_constants/separation = 4
 
 [node name="EnemyHand" type="GridContainer" parent="."]
-margin_right = 960.0
-rect_min_size = Vector2( 960, 0 )
+margin_left = 20.0
+margin_top = 24.0
+margin_right = 920.0
+margin_bottom = 72.0
+rect_min_size = Vector2( 900, 48 )
+mouse_filter = 2
 columns = 8
 
-[node name="GameBoard" type="VBoxContainer" parent="."]
-margin_top = 180.0
-margin_right = 960.0
-margin_bottom = 205.0
+[node name="GameBoard" type="ScrollContainer" parent="."]
+margin_left = 20.0
+margin_top = 360.0
+margin_right = 940.0
+margin_bottom = 510.0
+rect_min_size = Vector2( 920, 150 )
 
 [node name="PlayerHand" type="GridContainer" parent="GameBoard"]
-margin_right = 960.0
 columns = 8
 
-[node name="EndTurn" type="Button" parent="GameBoard"]
-margin_top = 4.0
-margin_right = 960.0
-margin_bottom = 25.0
-theme = ExtResource( 5 )
-custom_fonts/font = ExtResource( 4 )
-text = "End Turn"
-
 [node name="Tween" type="Tween" parent="GameBoard"]
-
-[node name="GUIContainer" type="GridContainer" parent="."]
-margin_top = 470.0
-margin_right = 800.0
-margin_bottom = 541.0
-columns = 5
-
-[node name="Spacer" type="Control" parent="GUIContainer"]
-margin_right = 80.0
-margin_bottom = 24.0
-rect_min_size = Vector2( 80, 24 )
-
-[node name="PlayerHP" type="ProgressBar" parent="GUIContainer"]
-margin_left = 84.0
-margin_right = 484.0
-margin_bottom = 24.0
-grow_horizontal = 2
-grow_vertical = 2
-rect_min_size = Vector2( 400, 24 )
-percent_visible = false
-script = ExtResource( 3 )
-
-[node name="HPLabel" type="Label" parent="GUIContainer/PlayerHP"]
-margin_top = 4.0
-margin_right = 400.0
-margin_bottom = 28.0
-theme = ExtResource( 5 )
-align = 1
-
-[node name="PlayerShields" type="Label" parent="GUIContainer"]
-margin_left = 488.0
-margin_top = 4.0
-margin_right = 527.0
-margin_bottom = 19.0
-theme = ExtResource( 5 )
-text = "Shield"
-
-[node name="PlayerEffects" type="Label" parent="GUIContainer"]
-margin_left = 531.0
-margin_top = 4.0
-margin_right = 531.0
-margin_bottom = 19.0
-theme = ExtResource( 5 )
-
-[node name="Spacer2" type="Control" parent="GUIContainer"]
-margin_left = 535.0
-margin_right = 615.0
-margin_bottom = 24.0
-rect_min_size = Vector2( 80, 24 )
-
-[node name="Spacer3" type="Control" parent="GUIContainer"]
-margin_top = 28.0
-margin_right = 80.0
-margin_bottom = 52.0
-rect_min_size = Vector2( 80, 24 )
-
-[node name="EnemyHP" type="ProgressBar" parent="GUIContainer"]
-margin_left = 84.0
-margin_top = 28.0
-margin_right = 484.0
-margin_bottom = 52.0
-rect_min_size = Vector2( 400, 24 )
-percent_visible = false
-script = ExtResource( 3 )
-
-[node name="HPLabel" type="Label" parent="GUIContainer/EnemyHP"]
-margin_top = 4.0
-margin_right = 400.0
-margin_bottom = 28.0
-theme = ExtResource( 5 )
-align = 1
-
-[node name="EnemyShields" type="Label" parent="GUIContainer"]
-margin_left = 488.0
-margin_top = 32.0
-margin_right = 527.0
-margin_bottom = 47.0
-theme = ExtResource( 5 )
-text = "Shield"
-
-[node name="EnemyEffects" type="Label" parent="GUIContainer"]
-margin_left = 531.0
-margin_top = 32.0
-margin_right = 531.0
-margin_bottom = 47.0
-theme = ExtResource( 5 )
-
-[node name="Spacer4" type="Control" parent="GUIContainer"]
-margin_left = 535.0
-margin_top = 28.0
-margin_right = 615.0
-margin_bottom = 52.0
-
-[node name="Spacer5" type="Control" parent="GUIContainer"]
-margin_top = 56.0
-margin_right = 80.0
-margin_bottom = 71.0
-
-[node name="BattleText" type="Label" parent="GUIContainer"]
-margin_left = 84.0
-margin_top = 56.0
-margin_right = 484.0
-margin_bottom = 71.0
-theme = ExtResource( 5 )
-text = "Battle!"
-clip_text = true
-
-[node name="DebugText" type="Label" parent="GUIContainer"]
-margin_left = 488.0
-margin_top = 56.0
-margin_right = 527.0
-margin_bottom = 71.0
-theme = ExtResource( 5 )
-text = "Debug"
 
 [node name="Background" type="CanvasLayer" parent="."]
 layer = -1
@@ -176,9 +57,10 @@ rect_min_size = Vector2( 960, 540 )
 
 [node name="OptionMenu" type="VBoxContainer" parent="."]
 margin_left = 870.0
-margin_top = 468.0
+margin_top = 418.0
 margin_right = 958.0
-margin_bottom = 540.0
+margin_bottom = 538.0
+mouse_filter = 2
 
 [node name="ShowDraw" type="Button" parent="OptionMenu"]
 margin_right = 88.0
@@ -203,7 +85,49 @@ theme = ExtResource( 5 )
 custom_fonts/font = ExtResource( 4 )
 text = "Void Space"
 
+[node name="ShowEquip" type="Button" parent="OptionMenu"]
+margin_top = 75.0
+margin_right = 88.0
+margin_bottom = 96.0
+theme = ExtResource( 5 )
+custom_fonts/font = ExtResource( 4 )
+text = "Inventory"
+
+[node name="ShowSettings" type="Button" parent="OptionMenu"]
+margin_top = 100.0
+margin_right = 88.0
+margin_bottom = 121.0
+custom_fonts/font = ExtResource( 4 )
+text = "Settings"
+
+[node name="EndTurn" type="Button" parent="."]
+margin_left = 180.0
+margin_top = 518.0
+margin_right = 780.0
+margin_bottom = 539.0
+theme = ExtResource( 5 )
+custom_fonts/font = ExtResource( 4 )
+text = "End Turn"
+
+[node name="BattleText" type="Label" parent="."]
+margin_left = 84.0
+margin_right = 484.0
+margin_bottom = 15.0
+theme = ExtResource( 5 )
+text = "Battle!"
+clip_text = true
+
+[node name="DebugText" type="Label" parent="."]
+margin_left = 400.0
+margin_right = 800.0
+margin_bottom = 15.0
+theme = ExtResource( 5 )
+text = "Debug"
+align = 2
+
 [connection signal="gui_input" from="Background/Panel" to="Game" method="_on_Panel_gui_input"]
 [connection signal="pressed" from="OptionMenu/ShowDraw" to="Game" method="_on_ShowDraw_pressed"]
 [connection signal="pressed" from="OptionMenu/ShowDiscard" to="Game" method="_on_ShowDiscard_pressed"]
 [connection signal="pressed" from="OptionMenu/ShowVoid" to="Game" method="_on_ShowVoid_pressed"]
+[connection signal="pressed" from="OptionMenu/ShowEquip" to="Game" method="_on_ShowEquip_pressed"]
+[connection signal="pressed" from="OptionMenu/ShowSettings" to="Game" method="_on_ShowSettings_pressed"]

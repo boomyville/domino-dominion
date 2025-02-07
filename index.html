@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Domino Dominion</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 5vh;
+            background-color: #000; /* Optional: Change the background color */
+        }
+
+        canvas {
+            display: block;
+            margin: auto;
+            width: auto; /* Set the canvas width proportional to the browser window */
+            height: 90%; /* Maintain aspect ratio */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script src="$GODOT_URL"></script>
+    <script>
+        var engine = new Engine($GODOT_CONFIG);
+        engine.startGame();
+    </script>
+</body>
+</html>
+
+
+<!DOCTYPE html>

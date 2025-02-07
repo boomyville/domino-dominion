@@ -4,10 +4,11 @@ extends Effects
 
 func _init():
 	event_type = "draw_domino"
-	name = "Frostbite"
+	effect_name = "Frostbite"
+	bb_code = BBCode.bb_code_frostbite()
 
 # React to the shield block event
-func on_event(event_type: String, data: Dictionary) -> void:
-	if event_type == "draw_domino" && data.draw > 0:
+func on_event(new_event_type: String, data: Dictionary, simulate_damage: bool = false) -> void:
+	if new_event_type == "draw_domino" && data.draw > 0 :
 		data.draw -= 1
-	.on_event(event_type, data)
+	.on_event(new_event_type, data)
