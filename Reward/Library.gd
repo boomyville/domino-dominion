@@ -18,4 +18,15 @@ func populate_deck():
 		domino_container.set_domino(domino)
 		$ScrollContainer/GridContainer.add_child(domino_container)
 
+# Sorting function
+func _sort_by_name(a, b):
+	# First, compare names
+	if a.domino_name.to_lower() != b.domino_name.to_lower():
+		return a.domino_name.to_lower() < b.domino_name.to_lower()
 
+	# Compare the first number
+	if a.get_numbers()[0] != b.get_numbers()[0]:
+		return a.get_numbers()[0] < b.get_numbers()[0]
+
+	# If the first numbers are the same, compare the second number
+	return a.get_numbers()[1] < b.get_numbers()[1]

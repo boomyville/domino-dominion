@@ -9,7 +9,7 @@ extends DominoContainer
 
 func _init():
 	domino_name = "Shoot"
-	criteria = ["common", "ranged", "top_stack"]
+	criteria = ["common", "ranged"]
 	initiate_domino()
 
 func initiate_domino():
@@ -61,7 +61,7 @@ func effect(origin, target):
 	yield(self, "pre_effect_complete")
 
 	var outcome = attack_message(origin, target, target.damage(origin, damage_value()))
-	var animation = preload("res://Battlers/Animations/Impulse.tscn")
+	var animation = preload("res://Battlers/Animations/Shoot.tscn")
 	spell(origin, target, outcome, "spell", animation)
 	
 	origin.add_dominos_to_deck(self.get_domino_name().replace(" ", ""), 1, self.get_domino_type(), get_upgrade_level(), false, true)

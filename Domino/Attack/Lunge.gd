@@ -29,7 +29,7 @@ func get_detailed_description():
 	var msg = get_pip_description()
 	msg += "Using this domino ends the user's turn\n"
 	msg += "Deal " + str(get_damage_value(5)) + BBCode.bb_code_attack() + "\n"
-	msg += "Apply 1 " + BBCode.bb_code_impair() + " onto the target]n"
+	msg += "Apply 1 " + BBCode.bb_code_impair() + " onto the target\n"
 	msg += "Impair reduces damage dealt by 50%"
 	
 	return msg

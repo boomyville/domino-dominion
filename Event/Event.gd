@@ -5,20 +5,102 @@ var active = true
 var npc_name: String = "Boomarian Civilian 1" # Default NPC name
 var event_data
 var is_typing = false  # Flag to check if typing is ongoing
+var event_log = {
+	"event_name": "",
+	"gems_gained": 0,
+	"gain_hp": 0,
+	"domino_gained": "",
+	"domino_lost": "",
+	"equipment_gained": "",
+	"equipment_lost": "",
+	"max_hp_gained": 0
+}
 
 # ==============================================================================
 # Event functions
 # ==============================================================================
 
+func set_event_name(name: String):
+	event_log.event_name = name	
+
+func add_event_log(key: String, value):
+	event_log[key] = value
+
+func write_event_log() -> void:
+	var new_log = {}
+	new_log.event_name = event_log.event_name
+	if event_log.gems_gained != 0:
+		new_log["gems_gained"] = event_log.gems_gained
+	if event_log.gain_hp != 0:
+		new_log["gain_hp"] = event_log.gain_hp
+	if event_log.domino_gained != "":
+		new_log["domino_gained"] = event_log.domino_gained
+	if event_log.domino_lost != "":
+		new_log["domino_lost"] = event_log.domino_lost
+	if event_log.equipment_gained != "":
+		new_log["equipment_gained"] = event_log.equipment_gained
+	if event_log.equipment_lost != "":
+		new_log["equipment_lost"] = event_log.equipment_lost
+	if event_log.max_hp_gained != 0:
+		new_log["max_hp_gained"] = event_log.max_hp_gained
+		
+	Game.get_node("Game").battle_log.append(new_log)
+	print("Event log: ", new_log)
+
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	active = true
-	Game.get_node("Game").player.hp = 34
-	Game.get_node("Game").player.gems += 102
-	# sacrifice_event, equipment_offering, healer_event, thorny_treasure
-	gamble_matching_domino()
+	#Game.get_node("Game").player.hp = 34
+	#Game.get_node("Game").player.gems += 102
+	# sacrifice_event, equipment_offering, healer_event, thorny_treasure, gamble_matching_domino
 	reset()
+
+func new_event(event: String):
+	reset()
+	active = true
+	match event:
+		"sacrifice":
+			sacrifice_event()
+		"equipment_offering":
+			equipment_offering()
+		"healer":
+			healer_event()
+		"thorny_treasure":
+			thorny_treasure()
+		"gamble_matching_domino":
+			gamble_matching_domino()
+		"random":
+			random_event()
+		_:
+			print("Event not found.")
+			conversation()
 	initialise()
+
+func random_event():
+
+	# Create an array of potential unexplored events
+	var potential_events = [
+		"sacrifice",
+		"equipment_offering",
+		"healer",
+		"thorny_treasure",
+		"gamble_matching_domino"
+	]
+
+	# Remove events that the player has encountered
+	for event in Game.get_node("Game").get_battle_log():
+		if "event_name" in event.keys():
+			if potential_events.has(event["event_name"]):
+				potential_events.erase(event["event_name"])
+	
+	if potential_events.size() == 0:
+		print("All events have been encountered.")
+		conversation()
+		return
+
+	potential_events.shuffle()
+	new_event(potential_events[0])
+	yield($AnimationPlayer, "animation_finished")
 
 func reset():
 	$VBoxContainer.hide()
@@ -27,10 +109,22 @@ func reset():
 	$NPCBust.hide()
 	$Status.hide()
 	$Stack.hide()
+	$Next.hide()
 	$Container.hide()
 	current_event_index = 0
 
+func destroy():
+	reset()
+	$AnimationPlayer.play("fade_out_reward")
+	yield($AnimationPlayer, "animation_finished")
+	print("Destroying event scene")
+	queue_free()
+
 func initialise():
+
+	$AnimationPlayer.play("fade_in_reward")
+	yield($AnimationPlayer, "animation_finished")
+
 	# Initiate busts
 	# First and second elements of the event_data array should correspond to our speakers
 	# First speaker must be the player
@@ -61,9 +155,12 @@ func next_sequence_in_event():
 	else:
 		#print("Event size: ", event_data.size(), " | Current index: ", current_event_index)
 		print("Event finished.")
+		write_event_log()	
 		reset()
 		active = false
 		$Status.show()
+		$Stack.show()
+		$Next.show()
 		return
 	
 	# Convo
@@ -119,8 +216,6 @@ func read_text():
 	increment_index()
 
 func type_text(text: String):
-
-
 	if is_typing:  # If already typing, skip to the end
 		$VBoxContainer.get_node("NinePatchRect/RichTextLabel").bbcode_text = text
 		$VBoxContainer/NinePatchRect/WindowCursor.show()
@@ -240,6 +335,11 @@ func _on_Stack_pressed():
 	library.populate_deck()
 	Game.get_node("Game").add_child(library)
 
+func _on_Next_pressed():
+	destroy()
+	Game.get_node("Game").player.reset_deck()
+	Game.get_node("Game").next_event()
+
 func continue(option: String = "deny_help"):
 	if(option == "deny_help"):
 		var outro = [
@@ -283,11 +383,14 @@ func reward(reward_array: Array = []):
 		if(reward_array[0] == "equipment"):
 			var equipment = Game.get_node("Game").get_equipment_from_name(reward_array[1])
 			Game.get_node("Game").string_to_battler("player").add_to_inventory(equipment)
+			add_event_log("equipment_gained", reward_array[1])
 		elif(reward_array[0] == "domino"):
 			var domino_to_add = Game.get_node("Game").get_domino_from_name(reward_array[1])
 			Game.get_node("Game").string_to_battler("player").add_to_deck(domino_to_add, "player")
+			add_event_log("domino_gained", reward_array[1])
 		elif(reward_array[0] == "gems"):
 			Game.get_node("Game").string_to_battler("player").add_gems(reward_array[1])
+			add_event_log("gems_gained", reward_array[1])
 	else:
 		pass
 
@@ -352,6 +455,8 @@ func random_match(number_of_dominos: int = 1, random_value: int = 0, random_valu
 			
 			if(damage > 0):
 				Game.get_node("Game").player.self_damage(damage, false)
+				
+				add_event_log("hp_gained", -damage)
 				damage_string = "What!? No! Please! (Took " + str(damage) + " damage)"
 			else:
 				damage_string = "Heh, can't get blood out if I've got nothing to give!"
@@ -370,6 +475,7 @@ func random_match(number_of_dominos: int = 1, random_value: int = 0, random_valu
 func remove_set_unequipped_equipment(equipment, reward_type: String = "gems", reward_amount: int = 0):
 	var gem_amount = reward_amount + round (0.2 * equipment.get_value())
 	Game.get_node("Game").string_to_battler("player").remove_from_inventory(equipment)
+	add_event_log("equipment_lost", equipment.get_name())
 	
 	if "uncommon" in equipment.criteria:
 		gem_amount += rand_range(8,12)
@@ -398,6 +504,7 @@ func remove_random_unequipped_equipment(reward_type: String = "gems", reward_amo
 	if unequipped_equipment.size() > 0:
 		var random_equipment = unequipped_equipment[randi() % unequipped_equipment.size()]
 		Game.get_node("Game").string_to_battler("player").remove_from_inventory(random_equipment)
+		add_event_log("equipment_lost", random_equipment.get_name())
 
 		if(reward_type == "gems"):
 			var gem_amount = reward_amount + round (0.5 * random_equipment.get_value())
@@ -434,21 +541,26 @@ func remove_random_unequipped_equipment(reward_type: String = "gems", reward_amo
 
 func gain_random_cursed_equipment(reward_array: Array = []):
 	var cursed_equipment = Game.get_node("Game").get_all_equipment(["cursed"], [])
-	print(cursed_equipment.size())
+	
+	reward(reward_array)
+
 	if cursed_equipment.size() > 0:
 		var random_equipment = cursed_equipment[randi() % cursed_equipment.size()]
 		Game.get_node("Game").string_to_battler("player").add_to_inventory(random_equipment)
 		Game.get_node("Game").string_to_battler("player").make_space_for_equipment(random_equipment)
+		add_event_log("equipment_gained", random_equipment.get_name())
 
 		var equipment_event = [
-			{ "speaker": "Player", "text": "Oh, you shouldn't have... taken this... " + random_equipment.get_equipment_name_with_bb_code() + "..." }			
+			{ "speaker": "Player", "text": "Oh, you shouldn't have... taken this... " + random_equipment.get_equipment_name_with_bb_code() + "..." },
+			{ "speaker": "Player", "text": "But at least I got a " + reward_array[1] }
 		]
 		event_data = insert_array(event_data, current_event_index + 1, equipment_event)
 		
 		return
 	else:
 		var equipment_event = [
-			{ "speaker": npc_name, "text": "Okay... That was not the right choice..." }	
+			{ "speaker": npc_name, "text": "Okay... That was not the right choice..." }	,
+			{ "speaker": "Player", "text": "But at least I got a " + reward_array[1] }
 		]
 		event_data = insert_array(event_data, current_event_index + 1, equipment_event)
 	
@@ -469,6 +581,8 @@ func donate_gems(gems_amount: int, reward_array: Array = [], jump_to_index: int 
 	# item can be dominoContainer or equipment name
 
 	Game.get_node("Game").string_to_battler("player").add_gems(-gems_amount)
+	
+	add_event_log("gems_gained", -gems_amount)
 	reward(reward_array)
 	
 	var gem_event = []
@@ -504,6 +618,8 @@ func donate_gems(gems_amount: int, reward_array: Array = [], jump_to_index: int 
 func lose_health(hp_cost: int, reward_array: Array = [], jump_to_index = -1):
 
 	Game.get_node("Game").string_to_battler("player").self_damage(hp_cost, false)
+	add_event_log("hp_gained", -hp_cost)
+
 	reward(reward_array)
 	var hp_event = []
 	
@@ -535,6 +651,8 @@ func lose_health(hp_cost: int, reward_array: Array = [], jump_to_index = -1):
 # This adds 3 indices to the event_data array
 func lose_max_health(max_hp_cost: int, reward_array: Array = [], jump_to_index = -1):
 	Game.get_node("Game").string_to_battler("player").max_hp -= max_hp_cost
+	add_event_log("max_hp_gained", -max_hp_cost)
+	
 	reward(reward_array)
 	var hp_event = []
 
@@ -565,7 +683,8 @@ func lose_max_health(max_hp_cost: int, reward_array: Array = [], jump_to_index =
 func gain_health(hp_gain: int, gem_cost: int, jump_to_index: int = -1):
 	Game.get_node("Game").string_to_battler("player").heal(hp_gain)
 	Game.get_node("Game").string_to_battler("player").add_gems(-gem_cost)
-
+	add_event_log("hp_gained", hp_gain)
+	add_event_log("gems_gained", -gem_cost)
 
 	var jump_to_event = [
 		{ "jump_to": jump_to_index }	
@@ -583,6 +702,8 @@ func gain_max_hp(max_hp_gain: int, gem_cost: int, jump_to_index: int = -1):
 	Game.get_node("Game").string_to_battler("player").max_hp += max_hp_gain
 	Game.get_node("Game").string_to_battler("player").heal(max_hp_gain)
 	Game.get_node("Game").string_to_battler("player").add_gems(-gem_cost)
+	add_event_log("max_hp_gained", max_hp_gain)
+	add_event_log("gems_gained", -gem_cost)
 
 
 	var jump_to_event = [
@@ -620,6 +741,8 @@ func is_valid_index(array: Array, index: int) -> bool:
 # Gain sacrifice dominos
 
 func sacrifice_event():
+
+	set_event_name("sacrifice")
 	
 	event_data = [
 		{"speaker": "Player", "text": "Hmm... an alluring power remains trapped on this altar."},
@@ -627,7 +750,7 @@ func sacrifice_event():
 		{"reward_domino": ["domino", "Sacrifice"]},
 		{"option": [
 			{"name": "Leave", "method": "continue", "args": ["time_to_go"]},
-			{"name": "Touch the altar (gain a cursed item)", "method": "gain_random_cursed_equipment"}
+			{"name": "Touch the altar (gain a cursed item)", "method": "gain_random_cursed_equipment", "args": [["domino", "Sacrifice"]]}
 		]},
 		{"speaker": "Player", "text": "I should leave now."}
 	]
@@ -647,6 +770,8 @@ func sacrifice_event():
 # Gain gems for random equipment
 
 func equipment_offering():
+
+	set_event_name("equipment_offering")
 
 	npc_name = "BoomarianCivilian1"
 
@@ -668,8 +793,9 @@ func equipment_offering():
 		event_data[4]["option"].append({"name": "Offer " + unequipped_equipment[0].equipment_name, "method": "remove_set_unequipped_equipment", "args": [unequipped_equipment[0], "gems", round( unequipped_equipment[0].get_value() * 0.6)]})
 
 # Gain healing or max HP buff
-
 func healer_event():
+
+	set_event_name("healer_event")
 
 	npc_name = ["BoomarianHealer", "BoomarianDisciple"][randi() % 2]
 	var random_value = round(4 + randi() % 10)
@@ -696,6 +822,8 @@ func healer_event():
 
 # Sacrifice health for a piece of equipment
 func thorny_treasure():
+
+	set_event_name("thorny_treasure")
 
 	var hp_cost = min(round(Game.get_node("Game").string_to_battler("player").get_max_hp() * 0.1), 4 + randi() % 6)
 	var hp_cost2 = round(Game.get_node("Game").string_to_battler("player").get_max_hp() * 0.25)
@@ -741,6 +869,9 @@ func conversation(type: String = "default"):
 
 #  Gamble
 func gamble_matching_domino():
+
+	set_event_name("gamble_matching_domino")
+
 	var random_values = [1, 2, 3, 4, 5, 6]
 	random_values.shuffle()
 	var random_value = random_values[0]

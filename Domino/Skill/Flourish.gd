@@ -20,6 +20,7 @@ func initiate_domino():
 		_:
 			print("Error: Invalid upgrade level")
 			criteria = ["uncommon", "any"]
+	.initiate_domino()
 	
 func get_description() -> String:
 	match get_upgrade_level():

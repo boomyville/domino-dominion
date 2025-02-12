@@ -7,12 +7,12 @@ func new_challenge():
 	var player = game.string_to_battler("player")
 	var enemy = game.string_to_battler("enemy")
 	
-	var battles_won = Game.get_node("Game").get_battles_won()
+	var current_level = game.current_level()
 
 	var challenges = {
 		"Double Health": ["Give the enemy double health and gain an extra reward at the end of battle", "enemy", "set_max_hp", enemy.max_hp * 2],
 		"Double Damage": ["Give the enemy double damage and gain an extra reward at the end of battle", "enemy", "afflict_status", "DoubleDamage", 10, 0],
-		"Spikes Galore": ["Apply " + str(battles_won + 5) + " Spikes to the enemy and gain an extra reward at the end of battle", "enemy", "afflict_status", "Spikes", (battles_won + 5), 0],
+		"Spikes Galore": ["Apply " + str(current_level + 5) + " Spikes to the enemy and gain an extra reward at the end of battle", "enemy", "afflict_status", "Spikes", (current_level + 5), 0],
 		"Half Damage": ["Apply Impair (half damage) to self and gain an extra reward at the end of battle", "player", "afflict_status", "Impair", 10, 0],
 		"Shields Up": ["Give the enemy shields equal to their maximum HP and gain an extra reward at the end of battle", "enemy", "set_fortified_shields", enemy.max_hp],
 		"Nullification": ["Apply 10 Nullification (damage immunity) to the enemy and gain an extra reward at the end of battle", "enemy", "afflict_status", "Nullify", 10, 0],
@@ -21,7 +21,7 @@ func new_challenge():
 		"Turn to Stone": ["Apply 10 Petrification to yourself and gain an extra reward at the end of battle", "player", "afflict_status", "Petrification", 10, 0],
 		"Paralytic Virus": ["Become paralysed for the duration of the battle and gain an extra reward at the end of battle", "player", "afflict_status", "Paralysis", 0, -1],
 		"Cryogenics": ["Become frostbitten for the duration of the battle and gain an extra reward at the end of battle", "player", "afflict_status", "Frostbite", 0, -1],
-		"Provocation": ["Apply " + str(round(battles_won / 3 + 6)) + " Fury to the enemy and gain an extra reward at the end of battle", "enemy", "afflict_status", "Fury", 0, round(battles_won / 3 + 6)]
+		"Provocation": ["Apply " + str(round(current_level / 3 + 6)) + " Fury to the enemy and gain an extra reward at the end of battle", "enemy", "afflict_status", "Fury", 0, round(current_level / 3 + 6)]
 	}
 
 	var keys = challenges.keys()

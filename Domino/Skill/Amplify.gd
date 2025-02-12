@@ -23,6 +23,7 @@ func initiate_domino():
 		_:
 			print("Error: Invalid upgrade level")
 			pip_data = { "left": [1, 6, "dynamic"], "right": [1, 6, "dynamic"] }
+	.initiate_domino()
 
 func get_description() -> String:
 	return "Next " + str(amplify_value()) + BBCode.bb_code_attack() + ": " + BBCode.bb_code_double()

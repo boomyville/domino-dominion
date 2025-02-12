@@ -9,7 +9,7 @@ extends DominoContainer
 
 func _init():
 	domino_name = "Replay Attack"
-	criteria = ["Common", "any"]
+	criteria = ["common", "any"]
 	action_point_cost = 1
 	initiate_domino()
 
@@ -21,12 +21,13 @@ func initiate_domino():
 			pip_data = { "right": [-1, null, "static"], "left": [1, 6, "erratic"] }
 		1:
 			pip_data = { "right": [-1, null, "static"], "left": [1, 6, "erratic"] }
-			pip_data = { "left": [-1, null, "dynamic"], "right": [1, 6, "dynamic"] }
+			pip_data = { "left": [-1, null, "static"], "right": [1, 6, "dynamic"] }
 		0:
-			pip_data = { "left": [-1, null, "dynamic"], "right": [1, 6, "dynamic"] }
+			pip_data = { "left": [-1, null, "static"], "right": [1, 6, "dynamic"] }
 		_:
 			print("Error: Invalid upgrade level")
-			pip_data = { "left": [-1, null, "dynamic"], "right": [1, 6, "dynamic"] }
+			pip_data = { "left": [-1, null, "static"], "right": [1, 6, "dynamic"] }
+	.initiate_domino()
 
 func get_description():
 	match get_upgrade_level():

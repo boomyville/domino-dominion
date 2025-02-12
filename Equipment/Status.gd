@@ -39,7 +39,6 @@ func reset():
 		
 func _on_equipment_container_pressed(index):
 	selected_index = index
-	print(game.get_game_state_string())
 	if(selected_index >= 0 && selected_index < player.max_equips):
 		if(game.get_game_state_string() == "Inactive"):
 			$EquipButton.show()

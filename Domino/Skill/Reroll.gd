@@ -10,6 +10,7 @@ func _init():
 	pip_data = { "left": [1, 6, "dynamic"], "right": [1, 6, "dynamic"] }
 	domino_name = "Reroll"
 	criteria = ["common", "sword", "top_stack"]
+	initiate_domino()
 	
 func get_description() -> String:
 	match get_upgrade_level():

@@ -20,6 +20,11 @@ onready var window_width = get_viewport().get_visible_rect().size.x
 var separation = 240
 var y_value = 256
 
+var map_data = {
+	"nodes": [],         # List of nodes with position, type, and column
+}
+var player_visited_nodes = []
+
 # Game statistics
 var battle_log = []
 export var enemy_list: Array = []
@@ -91,11 +96,13 @@ func _input(event):
 		for item in enemy.get_inventory():
 			msg += item.get_name() + ", "
 		print("Enemy items: ", msg)
+		print(get_battle_log())
 	if event is InputEventKey and event.scancode == KEY_8 and event.pressed:
 		var msg = ""
 		for domino in player.get_draw_pile():
 			msg += domino.domino_name + ", "
 		print("Player draw pile: ", msg)
+		print("current level: ", current_level())
 	if event is InputEventKey and event.scancode == KEY_9 and event.pressed:
 		print(string_to_battler("enemy").get_name())
 	if event is InputEventKey and event.scancode == KEY_0 and event.pressed:
@@ -111,6 +118,10 @@ func _input(event):
 #=====================================================
 func _ready():
 	randomize() # Initialize random number generator
+
+	#map_scene.get_node("Node2D").create_nodes()
+	map_data = generate_map_data(12, 0, 240, 72, 48, 12, [4, 8], [6, 10], [0], [])
+	print(map_data)
 
 	initialise_enemy_list() # Initialize the enemy list
 
@@ -297,7 +308,8 @@ func set_game_state(state):
 		battle_log_stringified += str(dominos_discarded) + "\n"
 		battle_log_stringified += str(dominos_voided) + "\n"
 		battle_log_stringified += str(total_turns) + "\n"
-		battle_log_stringified += favourite_domino 
+		battle_log_stringified += favourite_domino + "\n"
+		battle_log_stringified += str(get_events_encountered()) + "\n"
 
 		gameover_scene.set_statistics(battle_log_stringified)
 		if(player.hp <= 0):
@@ -1232,10 +1244,12 @@ func dominos_since_last_rare():
 		if "offered_dominos" in entry.keys():
 			for domino in entry["offered_dominos"]:
 				if "rare" in domino.get_criteria():
+					print("Last rare domino: ", domino.get_domino_name(), " | ", domino_count, " dominos since last rare domino")
 					return domino_count  # Stop counting when a rare domino is found
 				else:
 					domino_count += 1
-	
+
+	print(domino_count, " dominos since last rare domino")
 	return domino_count  # Return the count if no rare domino is found
 
 func get_all_equipment(filter_criteria: Array = [], exclusion_criteria: Array = []) -> Array:
@@ -1329,11 +1343,326 @@ func equipment_since_last_rare():
 					equipment_count += 1
 	
 	return equipment_count  # Return the count if no rare domino is found
+
+#=====================================================
+# Map stuff
+#=====================================================
+""" func store_map_data(all_nodes, connections, last_player_node_position):
+	
+	map_data["nodes"] = []
+	map_data["connections"] = {}
+
+	# Store nodes
+	for col in range(all_nodes.size()):
+		for node in all_nodes[col]:
+			var node_info = {
+				"position": node.position,
+				"type": node.get_property(),
+				"column": col
+			}
+			map_data["nodes"].append(node_info)
+
+	map_data["player_path"].append(last_player_node_position)
+
+	# Store connections
+	for from_node in connections.keys():
+		var from_pos = str(from_node.position)  # Convert to string for dictionary keys
+		map_data["connections"][from_pos] = []
+		for to_node in connections[from_node]:
+			map_data["connections"][from_pos].append(str(to_node.position))
+
+	print("Map data stored in dictionary!")
+func generate_map_data(number_of_columns: int, start_x: int, start_y: int, spacing_x: int, spacing_y: int, jitter: int, 
+					   guaranteed_heal_columns: Array, guaranteed_upgrade_columns: Array, guaranteed_enemy_columns: Array, 
+					   guaranteed_boss_columns: Array) -> Dictionary:
+	
+	randomize()
+	
+	var all_nodes = []  # Stores nodes in each column
+	var connections = {}  # Stores node connections
+	var max_y_distance = 40  # Max vertical distance for connections
+
+	for col in range(number_of_columns):
+		var nodes_in_column = 1
+
+		# Determine the number of nodes in this column
+		if (col < number_of_columns * 0.75) && (col > number_of_columns * 0.25):
+			nodes_in_column = max(1, 9 - int(col / 2))
+		elif col == 0:
+			nodes_in_column = 1
+		elif col == number_of_columns - 1:
+			nodes_in_column = 1 + randi() % 2
+		elif col <= number_of_columns * 0.25:
+			nodes_in_column = col + 1
+		elif number_of_columns >= number_of_columns * 0.75:
+			nodes_in_column = max(1, int(number_of_columns - col))
+		else:
+			nodes_in_column = 1
+
+		var nodes = []
+		var has_heal = false
+		var has_upgrade = false
+
+		for i in range(nodes_in_column):
+			var node_instance = preload("res://Event/MapNode.tscn").instance()
+			var x = start_x + col * spacing_x + floor(randf() * jitter)
+			var y = start_y + (i - nodes_in_column / 2.0) * spacing_y + floor(randf() * jitter)
+			node_instance.position = Vector2(x, y)
+
+			# Assign node type
+			var node_type = "enemy"
+
+			if col in guaranteed_enemy_columns:
+				node_type = "enemy"
+			elif col in guaranteed_boss_columns:
+				node_type = "boss"
+			elif col in guaranteed_heal_columns and randf() > 0.5:
+				node_type = "heal"
+				has_heal = true
+			elif col in guaranteed_upgrade_columns and randf() > 0.5:
+				node_type = "upgrade"
+				has_upgrade = true
+			else:
+				node_type = "event" if randf() > 0.7 else "enemy"
+
+			node_instance.set_property(node_type)
+			node_instance.set_column(col)
+
+			nodes.append(node_instance)
+
+		# Ensure at least one heal/upgrade if required in column
+		if col in guaranteed_heal_columns and not has_heal:
+			nodes[randi() % nodes.size()].set_property("heal")
+		if col in guaranteed_upgrade_columns and not has_upgrade:
+			nodes[randi() % nodes.size()].set_property("upgrade")
+
+		all_nodes.append(nodes)
+
+	# **CREATE CONNECTIONS**
+	for col in range(all_nodes.size() - 1):
+		var current_nodes = all_nodes[col]
+		var next_nodes = all_nodes[col + 1]
+
+		var connected_nodes = {}  # Track which nodes in the next column are connected
+
+		# Ensure every next column node has at least one connection
+		for next_node in next_nodes:
+			var closest_prev_node = null
+			var min_distance = INF
+
+			# Find closest previous column node
+			for node in current_nodes:
+				var distance = next_node.position.distance_to(node.position)
+				if distance < min_distance:
+					min_distance = distance
+					closest_prev_node = node
+
+			if closest_prev_node:
+				if not connections.has(closest_prev_node):
+					connections[closest_prev_node] = []
+				connections[closest_prev_node].append(next_node)
+				connected_nodes[next_node] = true
+
+		# Ensure each current node has at least one outgoing path
+		for node in current_nodes:
+			var valid_next_nodes = []
+
+			for next_node in next_nodes:
+				if abs(node.position.y - next_node.position.y) <= max_y_distance:
+					valid_next_nodes.append(next_node)
+
+			if valid_next_nodes.size() == 0:
+				# No valid connections -> Force connection to the closest
+				var closest_node = null
+				var min_distance = INF
+
+				for next_node in next_nodes:
+					var distance = node.position.distance_to(next_node.position)
+					if distance < min_distance:
+						min_distance = distance
+						closest_node = next_node
+
+				if closest_node:
+					if not connections.has(node):
+						connections[node] = []
+					connections[node].append(closest_node)
+			else:
+				# Create 1 to 3 random connections
+				var connections_count = randi() % 3 + 1
+				for _i in range(min(connections_count, valid_next_nodes.size())):
+					var next_node = valid_next_nodes[randi() % valid_next_nodes.size()]
+					if not connections.has(node):
+						connections[node] = []
+					connections[node].append(next_node)
+	map_data = {
+		"nodes": all_nodes,
+		"connections": connections
+	}
+
+	print("Map data generated! Nodes: ", all_nodes.size(), " Connections: ", connections.size())
+
+	return {
+		"nodes": all_nodes,
+		"connections": connections
+	}
+
+
+"""
+
+func generate_map_data(number_of_columns: int, start_x: int, start_y: int, spacing_x: int, spacing_y: int, jitter: int, 
+					   guaranteed_heal_columns: Array, guaranteed_upgrade_columns: Array, guaranteed_enemy_columns: Array, 
+					   guaranteed_boss_columns: Array) -> Dictionary:
+	
+	randomize()
+	var node_id = 0
+	var map_structure = {
+		"nodes": []  # Multi-dimensional array: columns -> nodes
+	}
+
+	# **Generate Nodes**
+	for col in range(number_of_columns):
+		var nodes_in_column = get_nodes_per_column(col, number_of_columns)
+		var column_nodes = []
+		
+		for i in range(nodes_in_column):
+			var x = start_x + col * spacing_x + randf() * jitter
+			var y = start_y + (i - nodes_in_column / 2.0) * spacing_y + randf() * jitter
+			var position = Vector2(x, y)
+
+			var node_type = get_node_type(col, guaranteed_heal_columns, guaranteed_upgrade_columns, guaranteed_enemy_columns, guaranteed_boss_columns)
+
+			# **Store Node Data**
+			var node_data = {
+				"id": node_id,
+				"type": node_type,
+				"position": position,
+				"connected_nodes": [],  # Forward connections
+				"incoming_nodes": []    # Backward connections
+			}
+			column_nodes.append(node_data)
+			node_id += 1  # Unique ID for each node
+		
+		map_structure["nodes"].append(column_nodes)
+
+	# **Generate Connections**
+	for col in range(map_structure["nodes"].size() - 1):
+		var current_nodes = map_structure["nodes"][col]
+		var next_nodes = map_structure["nodes"][col + 1]
+
+		var connected_nodes = {}  # Tracks which nodes in next column have at least one incoming connection
+
+		# **Step 1: Assign Forward Connections**
+		for node in current_nodes:
+			var valid_next_nodes = get_valid_connections(node, next_nodes, spacing_y)
+			if valid_next_nodes.size() == 0:
+				# No valid connections → Force connect to the closest node
+				var closest_node = get_closest_node(node, next_nodes)
+				if closest_node:
+					node["connected_nodes"].append(closest_node["id"])
+					closest_node["incoming_nodes"].append(node["id"])
+					connected_nodes[closest_node["id"]] = true
+			else:
+				# Create 1 to 3 random connections
+				var connections_count = randi() % 3 + 1
+				for i in range(min(connections_count, valid_next_nodes.size())):
+					var next_node = valid_next_nodes[randi() % valid_next_nodes.size()]
+					node["connected_nodes"].append(next_node["id"])
+					next_node["incoming_nodes"].append(node["id"])
+					connected_nodes[next_node["id"]] = true
+
+		# **Step 2: Ensure Every Next Column Node Has at Least 1 Incoming Connection**
+		for next_node in next_nodes:
+			if not next_node["id"] in connected_nodes:
+				var closest_prev_node = get_closest_node(next_node, current_nodes)
+				if closest_prev_node:
+					closest_prev_node["connected_nodes"].append(next_node["id"])
+					next_node["incoming_nodes"].append(closest_prev_node["id"])
+
+	# Store the generated map data
+	map_data = map_structure
+
+	# Add first node to visited nodes
+	player_visited_nodes.append(0)
+	
+	return map_data
+
+func get_nodes_per_column(col, total_columns):
+	if (col < total_columns * 0.75) && (col > total_columns * 0.25):
+		return max(1, 9 - int(col / 2))
+	elif col == 0:
+		return 1
+	elif col == total_columns - 1:
+		return 1 + randi() % 2
+	elif col <= total_columns * 0.25:
+		return col + 1
+	elif total_columns >= total_columns * 0.75:
+		return max(1, int(total_columns - col))
+	else:
+		return 1
+
+func get_node_type(col, heal_cols, upgrade_cols, enemy_cols, boss_cols):
+	if col in enemy_cols:
+		return "enemy"
+	elif col in boss_cols:
+		return "boss"
+	elif col in heal_cols and randf() > 0.5:
+		return "heal"
+	elif col in upgrade_cols and randf() > 0.5:
+		return "upgrade"
+	else:
+		return "event" if randf() > 0.7 else "enemy"
+
+func get_valid_connections(node, next_nodes, max_distance):
+	var valid_next_nodes = []
+	for next_node in next_nodes:
+		if abs(node["position"].y - next_node["position"].y) <= max_distance:
+			valid_next_nodes.append(next_node)
+	return valid_next_nodes
+
+func get_closest_node(node, next_nodes):
+	var closest_node = null
+	var min_distance = INF
+
+	for next_node in next_nodes:
+		var dist = node["position"].distance_to(next_node["position"])
+		if dist < min_distance:
+			min_distance = dist
+			closest_node = next_node
+
+	return closest_node
+
+"""
+func load_map():
+	var map_instance = preload("res://Map.tscn").instance()
+	get_tree().get_root().add_child(map_instance)
+	map_instance.recreate_map(map_data, player_travelled_nodes)
+
+func node_clicked(node_id: int):
+	# Add the clicked node to the player's travelled list
+	if node_id not in player_travelled_nodes:
+		player_travelled_nodes.append(node_id)
+
+	# Reload map with updated traversal data
+	load_map()
+"""
+
+func get_map_data() -> Dictionary:
+	return map_data
+
 #=====================================================
 # Next event
 #=====================================================
 func next_event():
-	new_battle()
+	#new_battle()
+	var map_scene = load("res://Event/Map.tscn").instance()
+	map_scene.get_node("Node2D").recreate_map(get_map_data(), player_visited_nodes)
+		
+	add_child(map_scene)
+	
+func new_mystery_event():
+	var mystery_event = load("res://Event/Event.tscn").instance()
+	add_child(mystery_event)
+	mystery_event.get_node("Node2D").random_event()
 
 #=====================================================
 # New battle
@@ -1556,7 +1885,6 @@ func show_ui():
 	get_node("../BattleText").show()
 	get_node("../DebugText").show()
 	
-
 # =====================================================
 # Battle log
 # =====================================================
@@ -1594,8 +1922,22 @@ func chosen_offered_domino(chosen_domino: DominoContainer):
 func get_battle_log():
 	return battle_log
 
-func get_battles_won():
-	return get_battle_log().size()
+func get_battles_won() -> int:
+	var count = 0
+	for entry in battle_log:
+		if "enemy_name" in entry.keys():
+			count += 1
+	return count
+
+func get_events_encountered() -> int:
+	var count = 0
+	for entry in battle_log:
+		if "event_name" in entry.keys():
+			count += 1
+	return count
+
+func current_level() -> int:
+	return get_battles_won() + get_events_encountered()
 
 # =====================================================
 # Utility

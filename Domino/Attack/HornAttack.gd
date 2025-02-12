@@ -10,7 +10,7 @@ extends DominoContainer
 func _init():
 	pip_data = { "left": [1, 6, "dynamic"], "right": [-1, null, "static"] }
 	domino_name = "Horn Attack"
-	criteria = ["irmy"]
+	criteria = ["irmy", "common"]
 	action_point_cost = 2
 	initiate_domino()
 

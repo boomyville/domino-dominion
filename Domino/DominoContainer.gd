@@ -136,6 +136,23 @@ func get_current_user() -> String:
 func get_numbers() -> Array:
 	return [number1, number2]
 
+func get_pip_value() -> Array:
+	var returned_value = []
+	if pip_data["left"][2] == "static":
+		returned_value.append(pip_data["left"][0])
+	elif pip_data["left"][1] == null:
+		returned_value.append(pip_data["left"][0])
+	else:
+		returned_value.append(random_range(pip_data["left"][0], pip_data["left"][1]))
+		
+	if pip_data["right"][2] == "static":
+		returned_value.append(pip_data["right"][0])
+	elif pip_data["right"][1] == null:
+		returned_value.append(pip_data["right"][0])
+	else:
+		returned_value.append(random_range(pip_data["right"][0], pip_data["right"][1])) 
+	return returned_value
+	
 func get_action_points() -> int:
 	return action_point_cost
 
@@ -161,7 +178,7 @@ func get_max_upgrade_level() -> int:
 		return 3
 	if "rare" in self.criteria:
 		return 2
-	print("Error: Invalid criteria")
+	print("Error: Invalid criteria for ", self.domino_name)
 	return 4
 
 func upgrade_domino(value: int = 1) -> bool:
@@ -207,7 +224,7 @@ func update_domino():
 			$HBoxContainer/RightTile/AnimatedSprite.play(str(number2) + "_shaking")
 		elif(right_status == "volatile" || pip_data["right"][2] == "volatile"):
 			$HBoxContainer/RightTile/AnimatedSprite.play(str(number2) + "_rainbow")
-			print("playing " + str(number2) + "_rainbow")
+			#print("playing " + str(number2) + "_rainbow")
 		else:
 			$HBoxContainer/RightTile/AnimatedSprite.play(str(number2))
 

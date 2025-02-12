@@ -9,7 +9,7 @@ extends DominoContainer
 func _init():
 	pip_data = { "left": [6, null, "static"], "right": [1, 5, "dynamic"] }
 	domino_name = "Ultra Violence"
-	criteria = ["uncommon", "physical", "any"]
+	criteria = ["uncommon", "physical", "any", "top_stack"]
 	action_point_cost = 1
 	initiate_domino()
 

@@ -72,6 +72,6 @@ func effect(origin, target):
 	
 	.effect(origin, target)
 	
-	var animation = preload("res://Battlers/Animations/Sacrifice.tscn")
-	spell(origin, origin, 0, "spell", animation)
+	var animation = preload("res://Battlers/Animations/Exalt.tscn")
+	spell(origin, origin, 0, "rise", animation)
 

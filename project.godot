@@ -57,10 +57,16 @@ texture=false
 display=false
 html5=false
 fps=false
+debug=false
 
 [gui]
 
 common/drop_mouse_on_gui_input_disabled=true
+
+[network]
+
+limits/debugger_stdout/max_chars_per_second=32768
+limits/debugger_stdout/max_messages_per_frame=100
 
 [physics]
 

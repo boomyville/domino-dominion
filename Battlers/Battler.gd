@@ -177,7 +177,7 @@ func get_unquipped_items():
 
 func equip_item(item):
 	if("weapon" in item.get_criteria()):
-		print("Equipping weapon: ", item.equipment_name)
+		#print("Equipping weapon: ", item.equipment_name)
 		unequip_weapon()
 	if("unwieldy") in item.get_criteria():
 		print(item.equipment_name, " will unequip all current equips due to unwieldy nature")
@@ -186,7 +186,7 @@ func equip_item(item):
 		print(item.equipment_name, " cannot be equipped due to another piece of equipment being unwieldy.")
 		return
 	if(self.inventory.has(item) && self.equipped_items.size() < self.max_equips && item.meets_requirements(self)):
-		print("Equipped!")
+		#print("Equipped!")
 		self.equipped_items.append(item)
 		self.inventory.erase(item)
 	else:
@@ -859,7 +859,7 @@ func on_turn_end():
 func battle_start():
 	self.battle_pose()
 	for equip in self.equipped_items:
-		print("Applying start of battle effect for ", equip.equipment_name)
+		#print("Applying start of battle effect for ", equip.equipment_name)
 		equip.apply_start_of_battle_effect()
 	self.draw_pile = shuffle_deck(self.get_draw_pile())
 

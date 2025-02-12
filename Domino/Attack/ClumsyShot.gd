@@ -10,7 +10,7 @@ extends DominoContainer
 func _init():
 	pip_data = { "left": [1, 6, "dynamic"], "right": [-1, null, "static"] }
 	domino_name = "Clumsy Shot"
-	criteria = ["common", "ranged", "top_stack"]
+	criteria = ["common", "ranged"]
 	initiate_domino()
 
 func initiate_domino():
@@ -49,7 +49,7 @@ func effect(origin, target):
 	Game.get_node("Game").trigger_domino_transfer(self, true, 1, origin.battler_type, "Hand_arrow", "Discard")
 
 	var outcome = attack_message(origin, target, target.damage(origin, damage_value()))
-	var animation = preload("res://Battlers/Animations/Impulse.tscn")
+	var animation = preload("res://Battlers/Animations/ClumsyShot.tscn")
 	spell(origin, target, outcome, "spell", animation)
 
 func requirements(origin, _target):

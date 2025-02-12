@@ -9,7 +9,7 @@ extends DominoContainer
 
 func _init():
 	domino_name = "Ironhide"
-	criteria = ["irmy"]
+	criteria = ["irmy", "common"]
 	initiate_domino()
 
 func initiate_domino():
