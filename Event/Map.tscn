@@ -14,6 +14,13 @@ margin_bottom = 40.0
 rect_min_size = Vector2( 960, 540 )
 color = Color( 0.368627, 0.709804, 0.560784, 1 )
 
+[node name="LinesContainer" type="Container" parent="Node2D"]
+margin_left = 40.0
+margin_top = 64.0
+margin_right = 920.0
+margin_bottom = 480.0
+rect_min_size = Vector2( 880, 416 )
+
 [node name="Container" type="Container" parent="Node2D"]
 margin_left = 40.0
 margin_top = 64.0

@@ -97,6 +97,9 @@ func set_cursed(value: bool):
 func is_cursed() -> bool:
 	return self.cursed
 
+func is_consumable() -> bool:
+	return "consumable" in self.criteria
+
 func set_name(name: String):
 	self.equipment_name = name
 
@@ -119,3 +122,6 @@ func apply_effect(effect, target, value = 0):
 	if value > 0:
 		value_string = str(value)
 	Game.get_node("Game").show_popup(value_string + effect.bb_code, target, "White", "PopupRiseAnimation")
+
+func item_effect():
+	pass 

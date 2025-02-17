@@ -158,7 +158,6 @@ animations = [ {
 [node name="CanvasLayer" type="CanvasLayer"]
 
 [node name="Node2D" type="Node2D" parent="."]
-modulate = Color( 1, 1, 1, 0 )
 script = ExtResource( 3 )
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="Node2D"]
@@ -172,17 +171,16 @@ rect_min_size = Vector2( 960, 540 )
 color = Color( 0.317647, 0.0705882, 0.0705882, 1 )
 
 [node name="PlayerSprite" parent="Node2D" instance=ExtResource( 4 )]
-frame = 1
 
 [node name="NPCBust" type="AnimatedSprite" parent="Node2D"]
 position = Vector2( 216, 396 )
 frames = SubResource( 16 )
 animation = "BoomarianHealer"
-frame = 4
 playing = true
 flip_h = true
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Node2D"]
+visible = false
 margin_left = 60.0
 margin_top = 30.0
 margin_right = 900.0
@@ -216,7 +214,7 @@ rect_min_size = Vector2( 840, 140 )
 [node name="WindowCursor" type="AnimatedSprite" parent="Node2D/VBoxContainer/NinePatchRect"]
 position = Vector2( 418, 146 )
 frames = SubResource( 21 )
-frame = 3
+frame = 1
 playing = true
 
 [node name="RichTextLabel" type="RichTextLabel" parent="Node2D/VBoxContainer/NinePatchRect"]
@@ -322,7 +320,6 @@ margin_right = 208.0
 margin_bottom = 274.0
 
 [node name="TextContainer" type="ScrollContainer" parent="Node2D"]
-visible = false
 margin_left = 1.0
 margin_top = 220.0
 margin_right = 801.0
@@ -336,6 +333,12 @@ margin_bottom = 14.0
 custom_fonts/font = ExtResource( 16 )
 text = "Debug Text"
 
+[node name="Timer" type="Timer" parent="Node2D"]
+wait_time = 0.1
+one_shot = true
+autostart = true
+
 [connection signal="pressed" from="Node2D/Status" to="Node2D" method="_on_Status_pressed"]
 [connection signal="pressed" from="Node2D/Stack" to="Node2D" method="_on_Stack_pressed"]
 [connection signal="pressed" from="Node2D/Next" to="Node2D" method="_on_Next_pressed"]
+[connection signal="timeout" from="Node2D/Timer" to="Node2D" method="_on_Timer_timeout"]

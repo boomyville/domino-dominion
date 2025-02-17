@@ -56,7 +56,7 @@ func get_detailed_description():
 func effect(origin, target):
 	.effect(origin, target)
 
-	Game.get_node("Game").domino_selection(1, 1, self, self.user, "hand_arrow", -1, "same_hand", {"discard_effect": [origin, target]})
+	Game.get_node("Game").domino_selection(1, 1, self, self.user, "hand_arrow", -1, "same_hand_discard", {"discard_effect": [origin, target]})
 
 	yield(self, "pre_effect_complete")
 

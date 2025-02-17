@@ -9,7 +9,7 @@ extends DominoContainer
 func _init():
 	pip_data = { "left": [1, 6, "dynamic"], "right": [1, 6, "dynamic"] }
 	domino_name = "Reroll"
-	criteria = ["common", "sword", "top_stack"]
+	criteria = ["common", "sword"]
 	initiate_domino()
 	
 func get_description() -> String:
@@ -40,9 +40,9 @@ func get_detailed_description():
 
 func effect(origin, target):
 	if (get_upgrade_level() == 0):
-		Game.get_node("Game").domino_selection(1, 1, self, self.user, "hand", -1, "same_hand", {"reroll": [3]})
+		Game.get_node("Game").domino_selection(1, 1, self, self.user, "hand", -1, "same_hand_reroll", {"reroll": [3]})
 	else:
-		Game.get_node("Game").domino_selection(1, get_upgrade_level(), self, self.user, "hand", -1, "same_hand", {"reroll": [6]})
+		Game.get_node("Game").domino_selection(1, get_upgrade_level(), self, self.user, "hand", -1, "same_hand_reroll", {"reroll": [6]})
 	
 	# Wait until the discard is complete before continuing
 	yield(self, "pre_effect_complete")

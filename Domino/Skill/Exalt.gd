@@ -8,7 +8,7 @@ extends DominoContainer
 func _init():
 	pip_data = { "left": [1, 3, "static"], "right": [4, 6, "static"] }
 	domino_name = "Exalt"
-	criteria = ["rare", "any", "top_stack"]
+	criteria = ["rare", "any"]
 	initiate_domino()
 
 func get_description() -> String:

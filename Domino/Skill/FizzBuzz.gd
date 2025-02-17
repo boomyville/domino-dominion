@@ -32,7 +32,7 @@ func get_description() -> String:
 
 func get_detailed_description():
 	var msg = get_pip_description()
-	msg += "Discard " + str(discard_value()) + "random dominos from the enemy hand"
+	msg += "Discard " + str(discard_value()) + " random dominos from the enemy hand"
 	return msg
 
 func discard_value() -> int:

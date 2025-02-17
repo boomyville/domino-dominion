@@ -52,6 +52,14 @@ func set_active(active: bool):
 		#$TextureButton.disabled = true
 		$TextureButton.disabled = true
 
+func set_visible(visible: bool):
+	#$TextureButton.visible = visible
+	if visible:
+		update_property()
+	else:
+		$TextureButton.texture_normal = load("res://Icons/EmptyEvent.png")
+		$TextureButton.texture_disabled = load("res://Icons/EmptyEvent.png")
+
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	#set_active(false)
@@ -67,7 +75,7 @@ func _on_TextureButton_pressed():
 	match property:
 		"upgrade":
 			# To add
-			Game.get_node("Game").new_mystery_event()
+			Game.get_node("Game").new_event("free_upgrade")
 		"empty":
 			# To add
 			Game.get_node("Game").new_battle()
@@ -79,7 +87,7 @@ func _on_TextureButton_pressed():
 			Game.get_node("Game").new_battle()
 		"heal", "recovery":
 			# To add
-			Game.get_node("Game").new_mystery_event()
+			Game.get_node("Game").new_event("free_heal")
 		_: # Default
 			Game.get_node("Game").new_battle()
 	print(get_parent().get_parent().has_method("destroy"))

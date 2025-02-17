@@ -108,20 +108,21 @@ func _input(event):
 	if event is InputEventKey and event.scancode == KEY_0 and event.pressed:
 		print("Debugging dominos:")
 		for domino in player_hand.get_children():
-			print("Domino:", domino.get_domino_name(), 
-				" Position:", domino.rect_position, 
-				" Signal connected:", domino.is_connected("domino_pressed", self, "_on_domino_pressed"),
-				" Mouse filter:", domino.mouse_filter,
-				" Parent:", domino.get_parent().name)
-
+			domino.show_details()
+			
+		#print(get_tree().root.get_children())
 # Initialisation
 #=====================================================
 func _ready():
 	randomize() # Initialize random number generator
 
 	#map_scene.get_node("Node2D").create_nodes()
-	map_data = generate_map_data(12, 0, 240, 72, 48, 12, [4, 8], [6, 10], [0], [])
-	print(map_data)
+	var first_shuffle = [3,4,5,6]
+	first_shuffle.shuffle()
+	var second_shuffle = [7,8,9,10]
+	second_shuffle.shuffle()
+	map_data = generate_map_data(12, 0, 240, 72, 48, 12, [first_shuffle[0], second_shuffle[0]], [first_shuffle[1], second_shuffle[2]], [0], [])
+	#print(map_data)
 
 	initialise_enemy_list() # Initialize the enemy list
 
@@ -364,6 +365,8 @@ func unselect_dominos():
 
 # Handle the event when a player plays a domino
 func _on_domino_pressed(domino_container: DominoContainer, pressed_number: int):	
+
+	print(domino_container.get_domino_name(), " clicked")
 
 	if(touch_mode):
 		if(domino_container.selected):
@@ -657,6 +660,14 @@ func get_target_collection(target: String, collection: String) -> Array:
 			return string_to_battler(target).get_discard_pile() 
 		"VOID":
 			return string_to_battler(target).get_void_space()
+		"STACK":
+			return string_to_battler(target).get_deck()
+		"UPGRADABLE_STACK":
+			var upgradable_stack: Array = []
+			for domino in string_to_battler(target).get_deck():
+				if domino.can_upgrade():
+					upgradable_stack.append(domino)
+			return upgradable_stack
 		_:
 			print("Invalid target for discard selection. Target: ", target, " Collection: ", collection)
 	return []
@@ -873,7 +884,21 @@ func process_selection(selected_dominos: Array, target: String, origin_collectio
 		"VOID":
 			for domino in selected_dominos:
 				string_to_battler(target).add_to_void_space(domino, origin_collection)
-		"SAME_HAND":
+
+		# Apply effect to a domino from the deck (such as upgrading)
+		# We also need to cycle through the deck (stack) and not apply the method to the selected_domino (which is just a copy of the deck)
+		"UPGRADABLE_STACK":
+			for user_dominos in string_to_battler(target).get_deck():
+				for domino in selected_dominos:
+					if user_dominos.check_shadow_match(domino):
+						for method_name in effects.keys():
+							if user_dominos.has_method(method_name.to_lower()):
+								print("Method ", method_name, " with args ", effects[method_name], " applied to ", user_dominos.get_domino_name())
+								user_dominos.callv(method_name.to_lower(), effects[method_name])
+							else:
+								print("Method '%s' not found on domino." % method_name)
+
+		"SAME_HAND", "SAME_HAND_DISCARD", "SAME_HAND_UPGRADE", "SAME_HAND_REROLL":
 			# For skills that apply an effect to the selected dominos
 			for user_dominos in string_to_battler(target).get_hand().get_children():
 				for domino in selected_dominos:
@@ -884,6 +909,9 @@ func process_selection(selected_dominos: Array, target: String, origin_collectio
 								user_dominos.callv(method_name.to_lower(), effects[method_name])
 							else:
 								print("Method '%s' not found on domino." % method_name)
+
+		_:
+			print("Invalid destination collection: ", destination_collection)
 	
 	game_state = GameState.DEFAULT
 	update_domino_highlights()
@@ -893,6 +921,9 @@ func is_selection() -> bool:
 
 func game_state_default() -> bool:
 	return game_state == GameState.DEFAULT
+
+func game_state_inactive() -> bool:
+	return game_state == GameState.INACTIVE
 
 # Moves dominos from playfield their owner's collection
 func return_playfield_dominos(selected_dominos: Array, destination_collection: String):
@@ -1125,10 +1156,11 @@ func wait(time: float, next_game_state):
 	yield(get_tree().create_timer(time), "timeout")
 	set_game_state(next_game_state)
 
+# Remove dominos from their parents so they can be re-parented in a new battle
 func disable_player_dominos():
 	for domino in player_hand.get_children():
 		domino.set_clickable(false)
-
+	
 #=====================================================
 # Rewards
 #=====================================================
@@ -1347,167 +1379,6 @@ func equipment_since_last_rare():
 #=====================================================
 # Map stuff
 #=====================================================
-""" func store_map_data(all_nodes, connections, last_player_node_position):
-	
-	map_data["nodes"] = []
-	map_data["connections"] = {}
-
-	# Store nodes
-	for col in range(all_nodes.size()):
-		for node in all_nodes[col]:
-			var node_info = {
-				"position": node.position,
-				"type": node.get_property(),
-				"column": col
-			}
-			map_data["nodes"].append(node_info)
-
-	map_data["player_path"].append(last_player_node_position)
-
-	# Store connections
-	for from_node in connections.keys():
-		var from_pos = str(from_node.position)  # Convert to string for dictionary keys
-		map_data["connections"][from_pos] = []
-		for to_node in connections[from_node]:
-			map_data["connections"][from_pos].append(str(to_node.position))
-
-	print("Map data stored in dictionary!")
-func generate_map_data(number_of_columns: int, start_x: int, start_y: int, spacing_x: int, spacing_y: int, jitter: int, 
-					   guaranteed_heal_columns: Array, guaranteed_upgrade_columns: Array, guaranteed_enemy_columns: Array, 
-					   guaranteed_boss_columns: Array) -> Dictionary:
-	
-	randomize()
-	
-	var all_nodes = []  # Stores nodes in each column
-	var connections = {}  # Stores node connections
-	var max_y_distance = 40  # Max vertical distance for connections
-
-	for col in range(number_of_columns):
-		var nodes_in_column = 1
-
-		# Determine the number of nodes in this column
-		if (col < number_of_columns * 0.75) && (col > number_of_columns * 0.25):
-			nodes_in_column = max(1, 9 - int(col / 2))
-		elif col == 0:
-			nodes_in_column = 1
-		elif col == number_of_columns - 1:
-			nodes_in_column = 1 + randi() % 2
-		elif col <= number_of_columns * 0.25:
-			nodes_in_column = col + 1
-		elif number_of_columns >= number_of_columns * 0.75:
-			nodes_in_column = max(1, int(number_of_columns - col))
-		else:
-			nodes_in_column = 1
-
-		var nodes = []
-		var has_heal = false
-		var has_upgrade = false
-
-		for i in range(nodes_in_column):
-			var node_instance = preload("res://Event/MapNode.tscn").instance()
-			var x = start_x + col * spacing_x + floor(randf() * jitter)
-			var y = start_y + (i - nodes_in_column / 2.0) * spacing_y + floor(randf() * jitter)
-			node_instance.position = Vector2(x, y)
-
-			# Assign node type
-			var node_type = "enemy"
-
-			if col in guaranteed_enemy_columns:
-				node_type = "enemy"
-			elif col in guaranteed_boss_columns:
-				node_type = "boss"
-			elif col in guaranteed_heal_columns and randf() > 0.5:
-				node_type = "heal"
-				has_heal = true
-			elif col in guaranteed_upgrade_columns and randf() > 0.5:
-				node_type = "upgrade"
-				has_upgrade = true
-			else:
-				node_type = "event" if randf() > 0.7 else "enemy"
-
-			node_instance.set_property(node_type)
-			node_instance.set_column(col)
-
-			nodes.append(node_instance)
-
-		# Ensure at least one heal/upgrade if required in column
-		if col in guaranteed_heal_columns and not has_heal:
-			nodes[randi() % nodes.size()].set_property("heal")
-		if col in guaranteed_upgrade_columns and not has_upgrade:
-			nodes[randi() % nodes.size()].set_property("upgrade")
-
-		all_nodes.append(nodes)
-
-	# **CREATE CONNECTIONS**
-	for col in range(all_nodes.size() - 1):
-		var current_nodes = all_nodes[col]
-		var next_nodes = all_nodes[col + 1]
-
-		var connected_nodes = {}  # Track which nodes in the next column are connected
-
-		# Ensure every next column node has at least one connection
-		for next_node in next_nodes:
-			var closest_prev_node = null
-			var min_distance = INF
-
-			# Find closest previous column node
-			for node in current_nodes:
-				var distance = next_node.position.distance_to(node.position)
-				if distance < min_distance:
-					min_distance = distance
-					closest_prev_node = node
-
-			if closest_prev_node:
-				if not connections.has(closest_prev_node):
-					connections[closest_prev_node] = []
-				connections[closest_prev_node].append(next_node)
-				connected_nodes[next_node] = true
-
-		# Ensure each current node has at least one outgoing path
-		for node in current_nodes:
-			var valid_next_nodes = []
-
-			for next_node in next_nodes:
-				if abs(node.position.y - next_node.position.y) <= max_y_distance:
-					valid_next_nodes.append(next_node)
-
-			if valid_next_nodes.size() == 0:
-				# No valid connections -> Force connection to the closest
-				var closest_node = null
-				var min_distance = INF
-
-				for next_node in next_nodes:
-					var distance = node.position.distance_to(next_node.position)
-					if distance < min_distance:
-						min_distance = distance
-						closest_node = next_node
-
-				if closest_node:
-					if not connections.has(node):
-						connections[node] = []
-					connections[node].append(closest_node)
-			else:
-				# Create 1 to 3 random connections
-				var connections_count = randi() % 3 + 1
-				for _i in range(min(connections_count, valid_next_nodes.size())):
-					var next_node = valid_next_nodes[randi() % valid_next_nodes.size()]
-					if not connections.has(node):
-						connections[node] = []
-					connections[node].append(next_node)
-	map_data = {
-		"nodes": all_nodes,
-		"connections": connections
-	}
-
-	print("Map data generated! Nodes: ", all_nodes.size(), " Connections: ", connections.size())
-
-	return {
-		"nodes": all_nodes,
-		"connections": connections
-	}
-
-
-"""
 
 func generate_map_data(number_of_columns: int, start_x: int, start_y: int, spacing_x: int, spacing_y: int, jitter: int, 
 					   guaranteed_heal_columns: Array, guaranteed_upgrade_columns: Array, guaranteed_enemy_columns: Array, 
@@ -1525,8 +1396,8 @@ func generate_map_data(number_of_columns: int, start_x: int, start_y: int, spaci
 		var column_nodes = []
 		
 		for i in range(nodes_in_column):
-			var x = start_x + col * spacing_x + randf() * jitter
-			var y = start_y + (i - nodes_in_column / 2.0) * spacing_y + randf() * jitter
+			var x = start_x + col * spacing_x + floor(randf() * jitter)
+			var y = start_y + (i - nodes_in_column / 2.0) * spacing_y + floor(randf() * jitter)
 			var position = Vector2(x, y)
 
 			var node_type = get_node_type(col, guaranteed_heal_columns, guaranteed_upgrade_columns, guaranteed_enemy_columns, guaranteed_boss_columns)
@@ -1554,21 +1425,27 @@ func generate_map_data(number_of_columns: int, start_x: int, start_y: int, spaci
 		# **Step 1: Assign Forward Connections**
 		for node in current_nodes:
 			var valid_next_nodes = get_valid_connections(node, next_nodes, spacing_y)
+			var selected_nodes = []  # Keep track of selected nodes to avoid duplicates
+
 			if valid_next_nodes.size() == 0:
 				# No valid connections → Force connect to the closest node
 				var closest_node = get_closest_node(node, next_nodes)
-				if closest_node:
+				if closest_node and closest_node["id"] != node["id"]:  # Ensure no self-connection
 					node["connected_nodes"].append(closest_node["id"])
 					closest_node["incoming_nodes"].append(node["id"])
 					connected_nodes[closest_node["id"]] = true
 			else:
-				# Create 1 to 3 random connections
+				# Create 1 to 3 unique random connections
 				var connections_count = randi() % 3 + 1
-				for i in range(min(connections_count, valid_next_nodes.size())):
+				while selected_nodes.size() < min(connections_count, valid_next_nodes.size()):
 					var next_node = valid_next_nodes[randi() % valid_next_nodes.size()]
-					node["connected_nodes"].append(next_node["id"])
-					next_node["incoming_nodes"].append(node["id"])
-					connected_nodes[next_node["id"]] = true
+					
+					# Ensure no self-connections & no duplicate connections
+					if next_node["id"] != node["id"] and not next_node["id"] in selected_nodes:
+						node["connected_nodes"].append(next_node["id"])
+						next_node["incoming_nodes"].append(node["id"])
+						connected_nodes[next_node["id"]] = true
+						selected_nodes.append(next_node["id"])  # Track added connections
 
 		# **Step 2: Ensure Every Next Column Node Has at Least 1 Incoming Connection**
 		for next_node in next_nodes:
@@ -1583,7 +1460,7 @@ func generate_map_data(number_of_columns: int, start_x: int, start_y: int, spaci
 
 	# Add first node to visited nodes
 	player_visited_nodes.append(0)
-	
+
 	return map_data
 
 func get_nodes_per_column(col, total_columns):
@@ -1631,20 +1508,7 @@ func get_closest_node(node, next_nodes):
 
 	return closest_node
 
-"""
-func load_map():
-	var map_instance = preload("res://Map.tscn").instance()
-	get_tree().get_root().add_child(map_instance)
-	map_instance.recreate_map(map_data, player_travelled_nodes)
 
-func node_clicked(node_id: int):
-	# Add the clicked node to the player's travelled list
-	if node_id not in player_travelled_nodes:
-		player_travelled_nodes.append(node_id)
-
-	# Reload map with updated traversal data
-	load_map()
-"""
 
 func get_map_data() -> Dictionary:
 	return map_data
@@ -1663,6 +1527,11 @@ func new_mystery_event():
 	var mystery_event = load("res://Event/Event.tscn").instance()
 	add_child(mystery_event)
 	mystery_event.get_node("Node2D").random_event()
+
+func new_event(event_type: String):
+	var event_scene = load("res://Event/Event.tscn").instance()
+	add_child(event_scene)
+	event_scene.get_node("Node2D").new_event(event_type)
 
 #=====================================================
 # New battle
@@ -1726,7 +1595,14 @@ func draw_hand(count: int, target: String, type: String = "ANY"):
 	var collection
 	var targetDrawPile
 
-	collection = get_hand(target)
+	# Potential for get_hand to not return a container (enemy / player container)
+	if target == "PLAYER":
+		collection = player_hand
+	elif target == "ENEMY":
+		collection = enemy_hand
+	else:
+		collection = get_hand(target)
+		print("Collection: ", collection, " | target: ", target)
 
 	targetDrawPile = string_to_battler(target).get_draw_pile() 
 	
@@ -1776,7 +1652,14 @@ func draw_hand(count: int, target: String, type: String = "ANY"):
 		#	print(domino.domino_name, domino.get_numbers(), " has been removed from current parent: ", current_parent.name)
 		#	current_parent.remove_child(domino)
 
+		# Need to remove parent on ephemeral dominos when the battle ends
+		# HOT FIX - Remove parent from domino so we can add it
+		if domino.get_parent() != null:
+			domino.get_parent().remove_child(domino)
+			print(domino.get_parent(), " is parent of ", domino.domino_name)	
+
 		collection.add_child(domino)
+		#print(collection.name, " | ", domino.domino_name, " | ", domino.get_numbers(), " | ", domino.get_action_points())
 
 		# Ensure signals connected
 		if !domino.is_connected("domino_pressed", self, "_on_domino_pressed"):  # Check if it's already connected
@@ -1810,6 +1693,7 @@ func get_random_draw(type: String, targetDrawPile: Array) -> Array:
 
 # Animate the domino sliding from the right to its position in the HBoxContainer
 func animate_domino(domino, container: GridContainer):
+
 	# Calculate the starting position (off-screen to the right)
 	var start_position = Vector2(OS.window_size.x, domino.rect_position.y)
 	
@@ -1817,6 +1701,8 @@ func animate_domino(domino, container: GridContainer):
 	domino.rect_position = start_position
 	var end_position = domino.final_domino_position(int(max(0, container.get_child_count() - 1)), container)
 	
+	#print("Start position: ", start_position, " | End position: ", end_position, " container:" , container.name, " | parent: ", domino.get_parent().name + " | domino name: ", domino.domino_name)
+
 	# Show the domino and animate it to its position in the container
 	var delay = 1.0
 	tween.interpolate_property(domino, "rect_position", start_position, end_position, delay, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
@@ -1945,7 +1831,8 @@ func current_level() -> int:
 
 func has_common_criteria(item_criteria: Array, battler_criteria: Array, include_any: bool = true) -> bool:
 	if(include_any):
-		battler_criteria.append("any") # Add any to the criteria
+		if not "any" in battler_criteria:
+			battler_criteria.append("any") # Add any to the criteria
 	if item_criteria.size() == 0:
 		#print("No criteria to check")
 		return false # No criteria to check

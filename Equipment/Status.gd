@@ -47,7 +47,10 @@ func _on_equipment_container_pressed(index):
 	elif(selected_index >= player.max_equips):
 		if(game.get_game_state_string() == "Inactive"):
 			$EquipButton.show()
-			$EquipButton.text = "Equip"
+			if(player.get_inventory()[selected_index - player.max_equips].is_consumable()):
+				$EquipButton.text = "Use"
+			else:
+				$EquipButton.text = "Equip"
 		$Information.text = player.get_inventory()[selected_index - player.max_equips].get_description()
 	else:
 		$EquipButton.hide()
@@ -78,7 +81,15 @@ func _on_EquipButton_pressed():
 		# Equip
 		if(!player.get_inventory()[selected_index - player.max_equips].meets_requirements(player)):
 			$Information.text = "You do not meet the requirements to equip this item!"
-		player.equip_item(player.get_inventory()[selected_index - player.max_equips])
+
+		# Consumable equipped
+		if player.get_inventory()[selected_index - player.max_equips].is_consumable():
+			player.get_inventory()[selected_index - player.max_equips].item_effect()
+			$Information.text = player.get_inventory()[selected_index - player.max_equips].get_name() + " was used!"
+			player.remove_from_inventory(player.get_inventory()[selected_index - player.max_equips])
+		else:
+			$Information.text = player.get_inventory()[selected_index - player.max_equips].get_name() + " was equipped!"
+			player.equip_item(player.get_inventory()[selected_index - player.max_equips])
 		selected_index = -1
 		initialise()
 	$EquipButton.hide()

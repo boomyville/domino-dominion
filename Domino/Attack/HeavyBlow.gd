@@ -56,6 +56,7 @@ func vulnerability_value():
 				vuln += 1
 			elif upgrade_level == 4 and (dominos.number1 == 5 || dominos.number2 == 5):
 				vuln += 1
+	return vuln
 
 func damage_value() -> int:
 	match upgrade_level:

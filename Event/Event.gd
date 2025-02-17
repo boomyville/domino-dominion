@@ -3,14 +3,16 @@ extends Node2D
 var current_event_index: int = 0
 var active = true
 var npc_name: String = "Boomarian Civilian 1" # Default NPC name
-var event_data
+var event_data = []
 var is_typing = false  # Flag to check if typing is ongoing
+var can_process_input: bool = false
 var event_log = {
 	"event_name": "",
 	"gems_gained": 0,
 	"gain_hp": 0,
 	"domino_gained": "",
 	"domino_lost": "",
+	"domino_upgraded": "",
 	"equipment_gained": "",
 	"equipment_lost": "",
 	"max_hp_gained": 0
@@ -50,9 +52,18 @@ func write_event_log() -> void:
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	active = true
+
+	$VBoxContainer.hide()
+
+	# Make first input require 1 second delay before processing
+	# When we click the ? event, it will require a click which will also be registered by this event
+	# And cause the event to increment the index twice
+	can_process_input = false
+
 	#Game.get_node("Game").player.hp = 34
 	#Game.get_node("Game").player.gems += 102
 	# sacrifice_event, equipment_offering, healer_event, thorny_treasure, gamble_matching_domino
+	new_event("free_upgrade")
 	reset()
 
 func new_event(event: String):
@@ -69,6 +80,10 @@ func new_event(event: String):
 			thorny_treasure()
 		"gamble_matching_domino":
 			gamble_matching_domino()
+		"free_heal":
+			free_heal()
+		"free_upgrade":
+			free_upgrade()
 		"random":
 			random_event()
 		_:
@@ -87,6 +102,11 @@ func random_event():
 		"gamble_matching_domino"
 	]
 
+	var perennial_events = [
+		"thorny_treasure",
+		"gamble_matching_domino"
+	]
+
 	# Remove events that the player has encountered
 	for event in Game.get_node("Game").get_battle_log():
 		if "event_name" in event.keys():
@@ -95,8 +115,7 @@ func random_event():
 	
 	if potential_events.size() == 0:
 		print("All events have been encountered.")
-		conversation()
-		return
+		potential_events = perennial_events
 
 	potential_events.shuffle()
 	new_event(potential_events[0])
@@ -112,6 +131,7 @@ func reset():
 	$Next.hide()
 	$Container.hide()
 	current_event_index = 0
+	can_process_input = false
 
 func destroy():
 	reset()
@@ -130,6 +150,12 @@ func initialise():
 	# First speaker must be the player
 	var speaker1 = event_data[0]["speaker"]
 	var speaker2 = event_data[1]["speaker"]
+
+	
+	if speaker1 != speaker2:
+		$NPCBust.play(speaker2.replace(" ", ""))
+		$NPCBust.show()
+	
 	
 	if speaker1.to_lower() == "player":
 		$PlayerSprite.play(Game.get_node("Game").string_to_battler("player").battler_name)
@@ -137,15 +163,12 @@ func initialise():
 	else:
 		$PlayerSprite.play(speaker1.replace(" ", ""))
 
-	if speaker1 != speaker2:
-		$NPCBust.play(speaker2.replace(" ", ""))
-		$NPCBust.show()
-	
 	# Initiate conversation
-	$VBoxContainer.show()
-	next_sequence_in_event()
+	#$VBoxContainer.show()
+	#next_sequence_in_event()
 
 func next_sequence_in_event():
+	print("Running next sequence in event")
 	update_debug_text()
 	if (current_event_index < 0):
 		current_event_index = 0
@@ -165,6 +188,7 @@ func next_sequence_in_event():
 	
 	# Convo
 	if event_data[current_event_index].has("speaker"):
+		print("reading text, current index is: ", current_event_index)
 		read_text()
 
 	# Option
@@ -185,6 +209,7 @@ func next_sequence_in_event():
 		else:
 			print("Error: Method", method, "not found.")
 		increment_index()
+		print("Process method incrementation")
 		next_sequence_in_event()
 
 	# Jump to
@@ -204,6 +229,7 @@ func next_sequence_in_event():
 			var equipment = Game.get_node("Game").get_equipment_from_name(event_data[current_event_index]["reward_domino"][1])
 			reward_domino_node.type = reward_domino_node.reward_type.EQUIPMENT
 			reward_domino_node.set_equipment(equipment)
+		print("Reward domino incrementation")
 		increment_index()
 		next_sequence_in_event()
 		
@@ -213,6 +239,7 @@ func read_text():
 
 	$VBoxContainer.get_node("NameBox/RichTextLabel").bbcode_text = format_string(event_data[current_event_index]["speaker"])
 	type_text(event_data[current_event_index]["text"])
+	print("Read text incrementation")
 	increment_index()
 
 func type_text(text: String):
@@ -254,18 +281,26 @@ func type_text(text: String):
 	
 func _input(event):
 	update_debug_text()
+
 	if event is InputEventMouseButton and event.pressed and active == true:
+
+		print("Can process input: ", can_process_input, " | Current event index: ", current_event_index, " VBOX visible: ", $VBoxContainer.visible)
+
 		# Mouse was clicked anywhere on the screen
 		if event.button_index == BUTTON_LEFT:  # Detect left mouse button
 			if is_typing:  # If typing, interrupt
 				is_typing = false
 			else:  # Otherwise, progress to the next dialogue or action
+				print("Input detected")
 				next_sequence_in_event()
 		elif event is InputEventScreenTouch and event.pressed and active == true:
 			if is_typing:  # If typing, interrupt
 				is_typing = false
 			else:  # Otherwise, progress to the next dialogue or action
+				print("Input detected")
 				next_sequence_in_event()
+		if  $VBoxContainer.visible == false and can_process_input == true:
+			$VBoxContainer.show()
 
 func show_buttons():
 	var options = event_data[current_event_index]["option"]
@@ -317,6 +352,7 @@ func _on_button_pressed(option):
 			print("Error: Method", method, "not found.")
 
 	# Proceed to the next sequence
+	print("Button incrementation")
 	increment_index()
 	$HBoxContainer.hide()
 	$Container.hide()
@@ -393,6 +429,18 @@ func reward(reward_array: Array = []):
 			add_event_log("gems_gained", reward_array[1])
 	else:
 		pass
+
+func grant_reward(reward_array: Array = [], jump_to_index: int = -1):
+	reward(reward_array)
+
+	var jump_to_event = [
+		{ "jump_to": jump_to_index }	
+	]
+
+	if jump_to_index is int:
+		if(jump_to_index != -1):
+			event_data = insert_array(event_data, current_event_index + 1, jump_to_event)
+	return
 
 # ==============================================================================
 # Gamble functions
@@ -568,6 +616,8 @@ func gain_random_cursed_equipment(reward_array: Array = []):
 	reward(reward_array)
 
 	return
+
+
 # ==============================================================================
 # Gem functions
 # ==============================================================================
@@ -684,7 +734,8 @@ func gain_health(hp_gain: int, gem_cost: int, jump_to_index: int = -1):
 	Game.get_node("Game").string_to_battler("player").heal(hp_gain)
 	Game.get_node("Game").string_to_battler("player").add_gems(-gem_cost)
 	add_event_log("hp_gained", hp_gain)
-	add_event_log("gems_gained", -gem_cost)
+	if(gem_cost > 0):
+		add_event_log("gems_gained", -gem_cost)
 
 	var jump_to_event = [
 		{ "jump_to": jump_to_index }	
@@ -703,7 +754,8 @@ func gain_max_hp(max_hp_gain: int, gem_cost: int, jump_to_index: int = -1):
 	Game.get_node("Game").string_to_battler("player").heal(max_hp_gain)
 	Game.get_node("Game").string_to_battler("player").add_gems(-gem_cost)
 	add_event_log("max_hp_gained", max_hp_gain)
-	add_event_log("gems_gained", -gem_cost)
+	if(gem_cost > 0):
+		add_event_log("gems_gained", -gem_cost)
 
 
 	var jump_to_event = [
@@ -795,7 +847,7 @@ func equipment_offering():
 # Gain healing or max HP buff
 func healer_event():
 
-	set_event_name("healer_event")
+	set_event_name("healer")
 
 	npc_name = ["BoomarianHealer", "BoomarianDisciple"][randi() % 2]
 	var random_value = round(4 + randi() % 10)
@@ -820,6 +872,94 @@ func healer_event():
 		{"speaker": npc_name, "text": "Stay safe out there!"},
 	]
 
+
+# Gain healing or max HP buff
+func free_heal():
+
+	set_event_name("free_heal")
+
+	event_data = [
+		{"speaker": "Player", "text": "What's that?"},
+		{"speaker": "Player", "text": "This must be one of those healing springs I've heard about."},
+		{"speaker": "Player", "text": "I should take advantage of this opportunity."},
+		{"option": [
+			{"name": "Heal 35% of max HP", "method": "gain_health", "args": [ceil(0.35 * Game.get_node("Game").string_to_battler("player").get_max_hp()), 0]},
+			{"name": "Collect some healing water", "method": "grant_reward", "args": [["equipment", "Pure Water"], 6]},
+			{"name": "Leave", "method": "jump_to", "args": [4, false]}
+		]},
+		{"speaker": "Player", "text": "I feel refreshed! (Healed " + str(ceil(0.35 *  Game.get_node("Game").string_to_battler("player").get_max_hp())) +  "HP / Current HP: " + str(Game.get_node("Game").string_to_battler("player").hp) + "/" + str(Game.get_node("Game").string_to_battler("player").get_max_hp()) + ")"},		
+		{"jump_to": 7},	
+		{"speaker": "Player", "text": "This bottle of regenerative water may come in handy later."},	
+		{"speaker": "Player", "text": "I should get going."}
+		]
+
+
+# Upgrade dominos
+func free_upgrade():
+	set_event_name("free_upgrade")
+
+	npc_name = "BoomarianCivilian1"
+
+	event_data = [
+		{ "speaker": "Player", "text": "Hey." },
+		{ "speaker": npc_name, "text": "Hey!" },
+		{ "speaker": npc_name, "text": "Fancy some upgrades to your kit?" },
+		{ "option": [
+			{ "name": "No thanks", "method": "continue", "args": ["no_thanks"] },
+			{"name": "Upgrade 2 random dominos", "method": "upgrade_domino", "args": [["random", 2], 6]},
+			{"name": "Upgrade 1 domino", "method": "upgrade_domino", "args": [["domino", 1], 6]}
+		]}
+	]
+
+# Creates a selection popup and upgrades the selected domino
+func upgrade_domino(arguments: Array = ["domino", 1], jump_to_index: int = -1):
+	match arguments[0]:
+		"domino":
+			var upgradable_dominos = []
+			for domino in Game.get_node("Game").player.get_deck():
+				if domino.can_upgrade():
+					upgradable_dominos.append(domino)
+			
+			if upgradable_dominos.size() >= arguments[1]:
+				Game.get_node("Game").domino_selection(arguments[1], arguments[1], null, "player", "UPGRADABLE_STACK", -1, "UPGRADABLE_STACK", {"upgrade_domino": [1]})
+			else:
+				Game.get_node("Game").domino_selection(0, arguments[1], null, "player", "UPGRADABLE_STACK", -1, "UPGRADABLE_STACK", {"upgrade_domino": [1]})
+		"random":
+			var upgradable_dominos = []
+			var upgraded_dominos = []
+			for domino in Game.get_node("Game").player.get_deck():
+				if domino.can_upgrade():
+					upgradable_dominos.append(domino)
+			upgradable_dominos.shuffle()
+			for i in range(arguments[1]):
+				if upgradable_dominos.size() > 0:
+					upgradable_dominos[i].upgrade_domino(1)
+					upgraded_dominos.append(upgradable_dominos[i].get_domino_name())
+					add_event_log("domino_upgraded", upgradable_dominos[i].get_domino_name())
+
+			var upgrade_text = ""
+			for _i in range(upgraded_dominos.size()):
+				if _i == upgraded_dominos.size() - 1:
+					upgrade_text += upgraded_dominos[_i]
+				else:
+					upgrade_text += upgraded_dominos[_i] + ", "
+
+			var upgrade_event = [
+				{ "speaker": "Player", "text": "Wow! " + upgrade_text + " just got upgraded!" }
+			]
+			
+			var jump_to_event = [
+				{ "jump_to": jump_to_index }	
+			]
+
+			event_data = insert_array(event_data, current_event_index + 1, upgrade_event)
+
+			if jump_to_index is int:
+				if(jump_to_index != -1):
+					event_data = insert_array(event_data, current_event_index + upgrade_event.size() + 1, jump_to_event)
+
+			return
+			
 # Sacrifice health for a piece of equipment
 func thorny_treasure():
 
@@ -891,6 +1031,8 @@ func gamble_matching_domino():
 		]},
 		{ "speaker": "Player", "text": "Well, see ya!" }
 	]
+
+
 # ==============================================================================
 # Debug functions
 # ==============================================================================
@@ -931,3 +1073,6 @@ func remove_digits(input: String) -> String:
 func format_string(input: String) -> String:
 	var without_digits = remove_digits(input)
 	return add_spaces_to_caps(without_digits)
+
+func _on_Timer_timeout():
+	can_process_input = true

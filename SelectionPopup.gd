@@ -104,7 +104,7 @@ func display_dominos():
 	else:
 		msg += "Select " + str(minimum_selections) + " to " + str(maximum_selections) + " dominos"
 
-	msg += " to "
+	msg += " to"
 	match destination_collection.to_lower():
 		"hand":
 			msg += " place into your hand"
@@ -116,6 +116,16 @@ func display_dominos():
 			msg += " remove from the game"
 		"board":
 			msg += " place on the board"
+		"same_hand":
+			msg += " modify"
+		"same_hand_reroll":
+			msg += " reroll"
+		"same_hand_discard":
+			msg += " discard"
+		"same_hand_upgrade":
+			msg += " upgrade"
+		"upgradable_stack":
+			msg += " upgrade" 
 
 	message.text = msg
 
@@ -155,7 +165,7 @@ func _on_domino_clicked(original_domino):
 
 func update_confirm_button():
 	
-	confirmButton.disabled = !((game.game_state == game.GameState.DOMINO_CHECK) || selected_dominos.size() >= minimum_selections && selected_dominos.size() <= maximum_selections)
+	confirmButton.disabled = !((game.game_state == game.GameState.DOMINO_CHECK) || (selected_dominos.size() >= minimum_selections && selected_dominos.size() <= maximum_selections))
 
 # Confirm selection and trigger discard
 func _on_ConfirmButton_pressed():

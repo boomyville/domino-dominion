@@ -50,7 +50,7 @@ func effect(origin, target):
 	
 	match get_upgrade_level():
 		0:
-			Game.get_node("Game").domino_selection(1, get_upgrade_level(), self, self.user, "hand", -1, "same_hand", {"alter_upgrade_domino": [1]})
+			Game.get_node("Game").domino_selection(1, get_upgrade_level(), self, self.user, "hand", -1, "same_hand_upgrade", {"alter_upgrade_domino": [1]})
 			yield(self, "pre_effect_complete")
 		1:
 			for domino in origin.get_hand().get_children():

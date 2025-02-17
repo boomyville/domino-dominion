@@ -165,6 +165,10 @@ func is_temporary() -> bool:
 func get_upgrade_level() -> int:
 	return current_upgrade_level
 
+func reset_upgrade_level():
+	current_upgrade_level = self.upgrade_level
+
+# Can only upgrade to penultimate tier
 func alter_upgrade_domino(value: int = 1):
 	current_upgrade_level = max(0, min(value + current_upgrade_level, self.get_max_upgrade_level() - 1))
 	#self._init()
@@ -188,6 +192,7 @@ func upgrade_domino(value: int = 1) -> bool:
 		#self._init()
 		self.update_domino()
 		self.initiate_domino()
+		print("Upgrading ", self.domino_name, " to level ", upgrade_level)
 		return true
 	return false
 
@@ -295,6 +300,11 @@ func set_clickable(clickable: bool):
 	else:
 		$HBoxContainer/LeftTile.focus_mode = Control.FOCUS_CLICK
 		$HBoxContainer/RightTile.focus_mode = Control.FOCUS_CLICK	
+
+
+# For debug purposes
+func get_clickable() -> bool:
+	return !$HBoxContainer/LeftTile.disabled && !$HBoxContainer/RightTile.disabled
 
 func reset_domino_state():
 	#print(domino_name, " reset. Clickable: ", !$HBoxContainer/LeftTile.disabled)
@@ -445,10 +455,12 @@ func random_value(max_value: int = 6):
 # Handle left button press and emit signal with number1
 func _on_left_button_pressed():
 	emit_signal("domino_pressed", self, number1) # Emit signal with number1 and self (domino container)
+	print("left pip of ", domino_name, " pressed")
 
 # Handle right button press and emit signal with number2
 func _on_right_button_pressed():
 	emit_signal("domino_pressed", self, number2) # Emit signal with number2 and self (domino container)
+	print("right pip of ", domino_name, " pressed")
 
 # Handle mouse enter - turn outline on
 func _on_button_hovered(button):
@@ -567,6 +579,18 @@ func show_domino_description(domino):
 			add_child(popup)
 			popup.get_node("Control/Popup/Node2D").set_type(popup.get_node("Control/Popup/Node2D").reward_type.DOMINO)
 			popup.get_node("Control").initialise(self)
+			
+			# Upgraded domino pops up if:
+				# 1. The selection popup is visible
+				# 2. The game state is default (so in battle) or inactive (events)
+				# 3. The destination collection is either "same_hand_upgrade" or "upgradable_stack"
+			if(game.selection_popup.visible == true and (game.game_state_default() or game.game_state_inactive()) and (game.selection_popup.destination_collection.to_lower() == "same_hand_upgrade" || game.selection_popup.destination_collection.to_lower() == "upgradable_stack")):
+				var upgrade_popup = description_descriptor.instance()
+				add_child(upgrade_popup)
+				upgrade_popup.get_node("Control/Popup/Node2D").set_type(upgrade_popup.get_node("Control/Popup/Node2D").reward_type.DOMINO)
+				upgrade_popup.get_node("Control").upgrade_domino_initialise(self, 1, false)
+				
+
 	else:
 		# Existing description logic for main game dominos
 		if has_node("DominoPopup"):
@@ -597,6 +621,10 @@ func show_domino_description(domino):
 			var popup = description_descriptor.instance()
 			add_child(popup)
 			popup.initialise(self)
+
+			
+
+
 
 func hide_domino_description(is_popup: bool = false):
 	if is_popup:
@@ -954,9 +982,17 @@ func animation_flip_for_enemy(target, animation_instance):
 #================================================================
 func show_details():
 	print("Domino: ", domino_name,
-	"Unclickable: ", $HBoxContainer/LeftTile.disabled,
 	" User: ", user,
 	" Current User: ", current_user,
 	" Mouse In Container: ", is_mouse_in_container,
-	" Selected: ", selected)
+	" Selected: ", selected,
+	" Position:", self.rect_position, 
+	" Signal connected:", self.is_connected("domino_pressed", Game.get_node("Game"), "_on_domino_pressed"),
+	" Mouse filter:", self.mouse_filter,
+	" Parent:", self.get_parent().name,
+	" Clickable: ", self.get_clickable())
+	var connections = self.get_signal_connection_list("domino_pressed")
+	for connection in connections:
+		print("Target: ", connection.target, " Method: ", connection.method, " Flags: ", connection.flags, " Valid target: ", is_instance_valid(connection.target))
+	
 	

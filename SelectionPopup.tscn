@@ -10,20 +10,20 @@ script = ExtResource( 3 )
 
 [node name="PopupPanel" type="PopupPanel" parent="."]
 visible = true
-margin_right = 648.0
-margin_bottom = 408.0
-rect_min_size = Vector2( 640, 400 )
+margin_right = 528.0
+margin_bottom = 432.0
+rect_min_size = Vector2( 520, 400 )
 popup_exclusive = true
 
 [node name="VBoxContainer" type="VBoxContainer" parent="PopupPanel"]
 margin_left = 4.0
 margin_top = 4.0
-margin_right = 644.0
+margin_right = 524.0
 margin_bottom = 428.0
-rect_min_size = Vector2( 640, 400 )
+rect_min_size = Vector2( 520, 400 )
 
 [node name="InfoMessage" type="Label" parent="PopupPanel/VBoxContainer"]
-margin_right = 640.0
+margin_right = 520.0
 margin_bottom = 15.0
 theme = ExtResource( 2 )
 text = "Select a domino"
@@ -31,30 +31,31 @@ align = 1
 
 [node name="ScrollContainer" type="ScrollContainer" parent="PopupPanel/VBoxContainer"]
 margin_top = 19.0
-margin_right = 640.0
+margin_right = 520.0
 margin_bottom = 399.0
-rect_min_size = Vector2( 640, 380 )
+rect_min_size = Vector2( 520, 380 )
 
 [node name="GridContainer" type="GridContainer" parent="PopupPanel/VBoxContainer/ScrollContainer"]
-columns = 6
+columns = 5
 
 [node name="HBoxContainer" type="HBoxContainer" parent="PopupPanel/VBoxContainer"]
 margin_top = 403.0
-margin_right = 640.0
+margin_right = 520.0
 margin_bottom = 424.0
+rect_min_size = Vector2( 520, 0 )
 alignment = 1
 
 [node name="ConfirmButton" type="Button" parent="PopupPanel/VBoxContainer/HBoxContainer"]
-margin_left = 264.0
-margin_right = 324.0
+margin_left = 204.0
+margin_right = 264.0
 margin_bottom = 21.0
 theme = ExtResource( 2 )
 custom_fonts/font = ExtResource( 1 )
 text = "Confirm"
 
 [node name="CancelButton" type="Button" parent="PopupPanel/VBoxContainer/HBoxContainer"]
-margin_left = 328.0
-margin_right = 375.0
+margin_left = 268.0
+margin_right = 315.0
 margin_bottom = 21.0
 theme = ExtResource( 2 )
 custom_fonts/font = ExtResource( 1 )

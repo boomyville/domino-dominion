@@ -11,14 +11,21 @@ func _ready():
 func create_rewards(enemy_domino: DominoContainer):
 	
 	var curated_list = Game.get_node("Game").get_domino_rewards(3)
-	# 10% chance first domino is replaced by enemy domino
-	if randf() > 0.10 && enemy_domino != null:
-		print("Enemy domino added to rewards")
-		curated_list[curated_list.size() - 1] = enemy_domino
+	
+	if(enemy_domino != null ):
+		var already_in_list = false
+		for i in range(curated_list.size()):
+			if curated_list[i].get_domino_name() == enemy_domino.get_domino_name():
+				already_in_list = true
+				break
+		# 10% chance first domino is replaced by enemy domino
+		if randf() > 0.10 && !already_in_list:
+			print("Enemy domino added to rewards")
+			curated_list[curated_list.size() - 1] = enemy_domino
 
 	#Debug
-		var debug_domino = load("res://Domino/Attack/ReplayAttack.tscn").instance()
-		curated_list[curated_list.size() - 1] = debug_domino
+		#var debug_domino = load("res://Domino/Attack/ReplayAttack.tscn").instance()
+		#curated_list[curated_list.size() - 1] = debug_domino
 
 	#var new_domino = load("res://Domino/Skill/NullField.tscn").instance()
 	#curated_list[0] = new_domino

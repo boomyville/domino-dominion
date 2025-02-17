@@ -10,7 +10,7 @@ extends DominoContainer
 func _init():
 	pip_data = { "left": [1, 6, "dynamic"], "right": [1, 6, "dynamic"] }
 	domino_name = "Reinforce"
-	criteria = ["common", "swordmaster"]
+	criteria = ["common", "swordmaster", "top_stack"]
 	initiate_domino()
 	
 func get_description() -> String:
@@ -74,7 +74,7 @@ func effect(origin, target):
 					domino.alter_upgrade_domino(1)
 					break
 		1, 2, 3:
-			Game.get_node("Game").domino_selection(1, upgrade_value(), self, self.user, "hand", -1, "same_hand", {"alter_upgrade_domino": [1]})
+			Game.get_node("Game").domino_selection(1, upgrade_value(), self, self.user, "hand", -1, "same_hand_upgrade", {"alter_upgrade_domino": [1]})
 			yield(self, "pre_effect_complete")
 		4:
 			for domino in origin.get_hand().get_children():

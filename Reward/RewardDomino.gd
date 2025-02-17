@@ -11,14 +11,21 @@ signal domino_added # A signal to indicate that a selection is made and trigger 
 func set_type(type_of_reward):
 	type = type_of_reward
 
-func set_domino(domino):
+func set_domino(domino, upgrade_level_modifier: int = 0, over_upgrade: bool = false):
 	if(type == reward_type.DOMINO):
 		$DisplayNode/Node.show()
 		$DisplayNode/Node2.hide()
-		reference_domino = domino
+		reference_domino = domino.shadow_copy()
+
+		if(upgrade_level_modifier != 0):
+			if(over_upgrade):
+				reference_domino.upgrade_domino(upgrade_level_modifier)
+			else:
+				reference_domino.alter_upgrade_domino(upgrade_level_modifier)
+
 		set_numbers(reference_domino.get_numbers()[0], reference_domino.get_numbers()[1])
 		$DisplayNode/Description.bbcode_text = "[center]" + reference_domino.get_detailed_description() + "[/center]"	
-		var upgrade_suffix: String = "-" if domino.get_upgrade_level() == 0 else "+".repeat(domino.get_upgrade_level() - 1) if domino.get_upgrade_level() > 1 else ""
+		var upgrade_suffix: String = "-" if reference_domino.get_upgrade_level() == 0 else "+".repeat(reference_domino.get_upgrade_level() - 1) if reference_domino.get_upgrade_level() > 1 else ""
 		
 		$DisplayNode/ItemName.text = reference_domino.domino_name + upgrade_suffix
 		if(reference_domino.action_point_cost > 0):

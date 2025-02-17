@@ -11,8 +11,9 @@ visible = false
 script = ExtResource( 2 )
 
 [node name="Popup" type="WindowDialog" parent="Control"]
+visible = true
 margin_right = 200.0
 margin_bottom = 240.0
-rect_min_size = Vector2( 200, 240 )
+rect_min_size = Vector2( 200, 266 )
 
 [node name="Node2D" parent="Control/Popup" instance=ExtResource( 1 )]

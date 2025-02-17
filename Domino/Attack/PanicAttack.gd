@@ -9,7 +9,7 @@ extends DominoContainer
 
 func _init():
 	domino_name = "Panic Attack"
-	criteria = ["common", "any"]
+	criteria = ["common", "any",  "top_stack"]
 	action_point_cost = 1
 	initiate_domino()
 

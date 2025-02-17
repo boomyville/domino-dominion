@@ -508,7 +508,9 @@ func add_dominos_to_hand(domino_name: String, amount: int, type: String = "Attac
 		new_domino.set_temporary(true)
 		new_domino.set_user(self.battler_type)
 		self.add_to_hand(new_domino, "", false)
-		new_domino.connect("domino_pressed", game, "_on_domino_pressed")
+		# Check if signal is already connected before connecting
+		if not new_domino.is_connected("domino_pressed", game, "_on_domino_pressed"):
+			new_domino.connect("domino_pressed", game, "_on_domino_pressed")
 	
 func add_to_deck(domino: DominoContainer, type: String):
 	domino.set_user(type)
@@ -553,10 +555,17 @@ func initialize_deck():
 # This method is run when the battler is reset
 func reset_deck():
 	cleanup_temporary_dominos()
+	reset_upgrade_levels()
 	#print("Resetting deck. Current deck size: ", self.deck.size(), " and current draw pile size: ", self.draw_pile.size())
 	self.draw_pile = self.deck.duplicate()
 	#print("Reset complete. Current draw pile size: ", self.draw_pile.size())
 	self.draw_pile = shuffle_deck(self.draw_pile)
+	reset_upgrade_levels()
+
+# Resets all upgrade levels of dominos
+func reset_upgrade_levels():
+	for domino in self.get_draw_pile():
+		domino.reset_upgrade_level()
 
 # This method removes temporary dominos from the deck, discard pile, void space, and draw pile
 # It also sets all dominos back to "clickable"
@@ -577,6 +586,9 @@ func cleanup_temporary_dominos():
 			domino.set_clickable(true)
 			domino.reset_domino_state()
 			domino.set_current_user(domino.get_user())
+			if domino.is_inside_tree():
+				domino.disconnect("domino_pressed", Game.get_node("Game"), "_on_domino_pressed")
+				domino.get_parent().remove_child(domino)
 	for domino in self.get_void_space():
 		if domino.is_temporary():  # Check if the domino was marked as temporary
 			self.get_void_space().remove(domino)
@@ -585,6 +597,9 @@ func cleanup_temporary_dominos():
 			domino.set_clickable(true)
 			domino.reset_domino_state()
 			domino.set_current_user(domino.get_user())
+			if domino.is_inside_tree():
+				domino.disconnect("domino_pressed", Game.get_node("Game"), "_on_domino_pressed")
+				domino.get_parent().remove_child(domino)
 	for domino in self.get_draw_pile():
 		if domino.is_temporary():  # Check if the domino was marked as temporary
 			self.get_draw_pile().remove(domino)
@@ -593,6 +608,8 @@ func cleanup_temporary_dominos():
 			domino.set_clickable(true)
 			domino.reset_domino_state()
 			domino.set_current_user(domino.get_user())
+			if domino.is_inside_tree():
+				domino.get_parent().remove_child(domino)
 
 func get_initial_draw() -> int:
 	return self.initial_draw
