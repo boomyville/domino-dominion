@@ -94,6 +94,7 @@ func display_collection(type: String, domino_array):
 	
 
 func display_dominos():
+	#Game.get_node("Game").set_game_state(Game.get_node("Game").GameState.DOMINO_CHECK)
 	var message = $PopupPanel/VBoxContainer/InfoMessage
 	var msg = ""
 	if minimum_selections == maximum_selections:

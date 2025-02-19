@@ -364,13 +364,11 @@ func unselect_dominos():
 			domino.set_clicked(false)
 
 # Handle the event when a player plays a domino
-func _on_domino_pressed(domino_container: DominoContainer, pressed_number: int):	
-
-	print(domino_container.get_domino_name(), " clicked")
+func perform_domino_action(domino_container: DominoContainer, pressed_number: int):	
 
 	if(touch_mode):
 		if(domino_container.selected):
-			if(domino_container.get_current_user().to_upper() == "PLAYER"):
+			if(domino_container.get_current_user().to_upper() == "PLAYER" and  selection_popup.visible == false):
 				play_domino(domino_container, pressed_number)
 			else:
 				unselect_dominos()
@@ -1226,10 +1224,14 @@ func get_domino_rewards(reward_number: int = 3) -> Array:
 	var attack_domino_list = player.load_dominos_from_folder("res://Domino/Attack", "")
 	var skill_domino_list = player.load_dominos_from_folder("res://Domino/Skill", "")
 
+	# Go through our domino list and remove the following dominos that have the criteria:
+	var exclusion_criteria = ["enemy", "weapon"]
+
 	# Filter dominos by rarity
 	# Note enemy domino is referenced by DOMINO NAME
 
 	var final_list = attack_domino_list + skill_domino_list
+	
 	final_list.shuffle()
 
 	# Go through entire list of dominos and remove any that do not fit with player's criteria
@@ -1241,6 +1243,8 @@ func get_domino_rewards(reward_number: int = 3) -> Array:
 	
 	for domino in final_list:
 		var temp_domino = domino.instance()
+		if has_common_criteria(temp_domino.get_criteria(), exclusion_criteria):
+			continue
 		if has_common_criteria(temp_domino.get_criteria(), player.get_criteria()):
 			# Check rarity
 			if "common" in temp_domino.get_criteria():

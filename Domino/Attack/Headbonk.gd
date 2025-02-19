@@ -37,7 +37,6 @@ func get_detailed_description() -> String:
 		_:
 			msg += "Error: Invalid upgrade level"
 
-	msg += get_description()
 	return msg
 
 func damage_value():

@@ -33,7 +33,6 @@ var temporary: bool = false
 var action_point_cost: int = 0
 var left_status = "" # Can be erratic or volatile
 var right_status = "" # Can be erratic or volatile
-signal domino_pressed
 signal pre_effect_complete
 signal action_completed
 
@@ -291,6 +290,8 @@ func update_domino():
 				var regular_font = preload("res://Fonts/MicroSlim.fnt")
 				$DominoLabel/Label.add_font_override("font", regular_font)
 
+	update_background()
+
 func set_clickable(clickable: bool):
 	$HBoxContainer/LeftTile.disabled = not clickable # Disable Button1 if not clickable
 	$HBoxContainer/RightTile.disabled = not clickable # Disable Button2 if not clickable
@@ -454,13 +455,11 @@ func random_value(max_value: int = 6):
 
 # Handle left button press and emit signal with number1
 func _on_left_button_pressed():
-	emit_signal("domino_pressed", self, number1) # Emit signal with number1 and self (domino container)
-	print("left pip of ", domino_name, " pressed")
-
+	Game.get_node("Game").perform_domino_action(self, number1)
+	
 # Handle right button press and emit signal with number2
 func _on_right_button_pressed():
-	emit_signal("domino_pressed", self, number2) # Emit signal with number2 and self (domino container)
-	print("right pip of ", domino_name, " pressed")
+	Game.get_node("Game").perform_domino_action(self, number2)
 
 # Handle mouse enter - turn outline on
 func _on_button_hovered(button):
@@ -987,12 +986,7 @@ func show_details():
 	" Mouse In Container: ", is_mouse_in_container,
 	" Selected: ", selected,
 	" Position:", self.rect_position, 
-	" Signal connected:", self.is_connected("domino_pressed", Game.get_node("Game"), "_on_domino_pressed"),
 	" Mouse filter:", self.mouse_filter,
 	" Parent:", self.get_parent().name,
 	" Clickable: ", self.get_clickable())
-	var connections = self.get_signal_connection_list("domino_pressed")
-	for connection in connections:
-		print("Target: ", connection.target, " Method: ", connection.method, " Flags: ", connection.flags, " Valid target: ", is_instance_valid(connection.target))
-	
 	

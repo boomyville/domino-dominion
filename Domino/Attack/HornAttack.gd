@@ -10,7 +10,7 @@ extends DominoContainer
 func _init():
 	pip_data = { "left": [1, 6, "dynamic"], "right": [-1, null, "static"] }
 	domino_name = "Horn Attack"
-	criteria = ["irmy", "common"]
+	criteria = ["irmy", "common", "weapon"]
 	action_point_cost = 2
 	initiate_domino()
 
@@ -19,7 +19,6 @@ func get_description() -> String:
 
 func get_detailed_description():
 	var msg = get_pip_description()
-	msg += "Irmy only\n"
 	msg += "Deal " + str(get_damage_value(damage_value())) + BBCode.bb_code_attack()
 	return msg
 

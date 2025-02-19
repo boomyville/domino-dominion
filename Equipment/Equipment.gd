@@ -7,11 +7,17 @@ var icon
 var equip_owner
 var unique
 var cursed 
+# Upgrade levels; start at 1 by default
+var upgrade_level = 1
+var max_upgrade_level = 3
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	pass # Replace with function body.
 
+func _init():
+	initiate_equipment()
+	
 func alter_stats() -> Dictionary:
 	var new_stats = {}
 	#Stats modified:
@@ -28,6 +34,32 @@ func new_immunity() -> Array:
 func apply_start_of_battle_effect():
 	pass
 
+func get_max_upgrade_level() -> int:
+	if "common" in self.criteria or "starter" in self.criteria:
+		return 4
+	if "uncommon" in self.criteria:
+		return 3
+	if "rare" in self.criteria:
+		return 2
+	return 4
+
+func upgrade_equipment(value: int = 1) -> bool:
+	if can_upgrade():
+		var new_upgrade_level = min(value + upgrade_level, self.get_max_upgrade_level())
+		set_upgrade_level(new_upgrade_level)
+		return true
+	return false
+
+func set_upgrade_level(value: int):
+	var new_upgrade_level = max(0, min(self.get_max_upgrade_level(), value))
+	upgrade_level = new_upgrade_level
+	initiate_equipment()
+func can_upgrade(over_upgrade = false) -> bool:
+	if (over_upgrade):
+		return upgrade_level < get_max_upgrade_level()
+	else:
+		return upgrade_level < get_max_upgrade_level() - 1
+
 func meets_requirements(battler):
 	print("Checking requirements for: " + self.equipment_name, " | criteria for item: ", self.criteria, " | battler criteria: ", battler.get_criteria())
 	for criterion in criteria:
@@ -35,12 +67,6 @@ func meets_requirements(battler):
 			return true
 	return false 
 
-func init(name_param: String, criteria_param: Array, desc_param: String, icon_param, is_unique_param = false):
-	equipment_name = name_param
-	criteria = criteria_param
-	description = desc_param
-	icon = icon_param
-	unique = is_unique_param
 
 func set_icon(new_icon):
 	self.icon = new_icon
@@ -68,6 +94,8 @@ func get_description() -> String:
 func get_equipment_name_with_bb_code():
 	return "[font=res://Fonts/VAlign.tres][img]" + self.icon + "[/img][/font] " + self.equipment_name
 
+func initiate_equipment():
+	pass
 
 func get_value() -> int:
 	var value = 0
@@ -104,13 +132,17 @@ func set_name(name: String):
 	self.equipment_name = name
 
 func get_name() -> String:
-	return self.equipment_name
+	var upgrade_suffix: String = "-" if self.get_upgrade_level() == 0 else "+".repeat(self.get_upgrade_level() - 1) if self.get_upgrade_level() > 1 else ""
+	return self.equipment_name + upgrade_suffix
 
 func set_owner(new_owner):
 	self.equip_owner = new_owner
 
 func get_owner():
 	return self.equip_owner
+
+func get_upgrade_level() -> int:
+	return self.upgrade_level
 
 # ======================================================================
 # Methods derived from other scenes
