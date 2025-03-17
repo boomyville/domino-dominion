@@ -28,23 +28,25 @@ func set_domino(domino, upgrade_level_modifier: int = 0, over_upgrade: bool = fa
 		var upgrade_suffix: String = "-" if reference_domino.get_upgrade_level() == 0 else "+".repeat(reference_domino.get_upgrade_level() - 1) if reference_domino.get_upgrade_level() > 1 else ""
 		
 		$DisplayNode/ItemName.text = reference_domino.domino_name + upgrade_suffix
-		if(reference_domino.action_point_cost > 0):
+		if(reference_domino.get_action_points() > 0):
 			$DisplayNode/Node/ActionPointCircle.show()
 			$DisplayNode/Node/ActionPointLabel.show()
-			$DisplayNode/Node/ActionPointLabel.text = str(reference_domino.action_point_cost)
+			$DisplayNode/Node/ActionPointLabel.text = str(reference_domino.get_action_points())
 		else:
 			$DisplayNode/Node/ActionPointCircle.hide()
 			$DisplayNode/Node/ActionPointLabel.hide()
 	else:
 		print("Invalid method called on domino!")
 
-func set_equipment(equipment):
+func set_equipment(equipment, upgrade_level_modifier: int = 0, over_upgrade: bool = false):
 	if(type == reward_type.EQUIPMENT):
 		$DisplayNode/Node.hide()
 		$DisplayNode/Node2.show()
 		reference_equipment = equipment 
 		var icon_texture = load(equipment.get_icon())
 		$DisplayNode/Node2/EquipmentTexture.texture_normal = icon_texture
+		reference_equipment.upgrade_equipment(upgrade_level_modifier, over_upgrade)
+		
 		$DisplayNode/Description.bbcode_text = "[center]" + reference_equipment.get_description() + "[/center]"	
 		$DisplayNode/ItemName.text = reference_equipment.get_name()
 	else:

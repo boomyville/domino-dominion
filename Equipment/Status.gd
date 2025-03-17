@@ -31,6 +31,9 @@ func initialise():
 
 	# Stats display
 	$CharacterStats.text = "HP: " + str (player.hp) + " / " + str(player.get_max_hp()) + "\n" + "Max shield: " + str(player.get_max_shield()) + "\n" + "Action Points: " + str(player.action_points_per_turn) + "\n" + "Draw: " + str(player.draw_per_turn) + "\n" + "Hand Size: " + str(player.max_hand_size) + "\n" + "Max Equips: " + str(player.max_equips)
+	
+	# Bust display
+	$PlayerSprite.play(game.player.get_name())
 		
 func reset():
 	for  item in $GridContainer.get_children():

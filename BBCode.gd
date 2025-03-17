@@ -102,7 +102,9 @@ func bb_code_nullify():
 		
 func bb_code_half():
 	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Half.png[/img][/font]"
-		
+func bb_code_frenzy():
+	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Frenzy.png[/img][/font]"
+	
 func bb_code_impair():
 	return "[font=res://Fonts/VAlign.tres][img]res://Icons/Impair.png[/img][/font]"
 

@@ -28,6 +28,10 @@ func update_property():
 			$TextureButton.texture_normal = load("res://Icons/Enemy.png")
 			$TextureButton.texture_disabled = load("res://Icons/EnemyDisabled.png")
 			self.property = "battle"
+		"buy", "shop":
+			$TextureButton.texture_normal = load("res://Icons/Shop.png")
+			$TextureButton.texture_disabled = load("res://Icons/ShopDisabled.png")
+			self.property = "shop"
 		"heal", "recovery":
 			$TextureButton.texture_normal = load("res://Icons/Recovery.png")
 			$TextureButton.texture_disabled = load("res://Icons/RecoveryDisabled.png")
@@ -88,6 +92,9 @@ func _on_TextureButton_pressed():
 		"heal", "recovery":
 			# To add
 			Game.get_node("Game").new_event("free_heal")
+		"shop", "buy":
+			# To add
+			Game.get_node("Game").new_shop()
 		_: # Default
 			Game.get_node("Game").new_battle()
 	print(get_parent().get_parent().has_method("destroy"))

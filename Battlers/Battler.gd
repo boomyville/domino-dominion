@@ -11,6 +11,7 @@ var initial_draw: int
 var draw_per_turn: int
 var max_hand_size: int
 var auto_discard: bool
+var keep_hand: bool
 var action_points: int
 var action_points_per_turn: int
 var gems: int
@@ -19,6 +20,7 @@ var deck: Array
 var equipped_items: Array
 var max_equips: int
 var inventory: Array
+var map_foresight: int
 #var hp_gauge
 #var effect_text
 #var shield_text
@@ -44,7 +46,9 @@ func _init(
 	max_equips_arg: int = 3, 
 	max_hand_size_arg: int = 9, 
 	auto_discard_arg: bool = false, 
+	keep_hand_arg: bool = true,
 	action_points_per_turn_arg: int = 3, 
+	map_foresight_arg: int = 1,
 	hp_arg: int = 50, 
 	max_hp_arg: int = 50, 
 	shield_arg: int = 0, 
@@ -60,9 +64,11 @@ func _init(
 	battler_type = battler_type_arg
 	max_hand_size = max_hand_size_arg
 	auto_discard = auto_discard_arg
+	keep_hand = keep_hand_arg
 	action_points = action_points_per_turn_arg
 	action_points_per_turn = action_points_per_turn_arg
 	max_equips = max_equips_arg
+	map_foresight = map_foresight_arg
 	gems = gems_arg
 	criteria = criteria_arg
 	hp = hp_arg
@@ -105,6 +111,15 @@ func set_max_hand_size(size: int):
 
 func set_auto_discard(discard: bool):
 	self.auto_discard = discard
+
+func set_keep_hand(keep: bool):
+	self.keep_hand = keep
+
+func set_map_foresight(foresight: int):
+	self.map_foresight = foresight
+
+func get_map_foresight():
+	return self.map_foresight
 
 func set_action_points_per_turn(points: int):
 	self.action_points_per_turn = points
@@ -168,11 +183,17 @@ func get_equipped_items():
 func get_inventory():
 	return self.inventory
 
-func get_unquipped_items():
+func can_equip(item):
+	if(item.meets_requirements(self)):
+		return true
+	return false
+
+func get_unquipped_items(upgradable: bool = false, over_upgrade: bool = false):
 	var unquipped_items = []
 	for item in self.inventory:
 		if not self.equipped_items.has(item):
-			unquipped_items.append(item)
+			if(!upgradable || (upgradable and item.can_upgrade(over_upgrade))):
+				unquipped_items.append(item)
 	return unquipped_items
 
 func equip_item(item):
@@ -219,6 +240,20 @@ func unequip_weapon():
 			self.inventory.append(item)
 			self.equipped_items.erase(item)
 
+func get_equipped_weapon():
+	for item in self.equipped_items:
+		if("weapon" in item.get_criteria()):
+			return item
+	return false
+
+func get_equipped_accessories(can_upgrade: bool = false, over_upgrade: bool = false):
+	var accessories = []
+	for item in self.equipped_items:
+		if(not "weapon" in item.get_criteria()):
+			if not can_upgrade or (can_upgrade and item.can_upgrade(over_upgrade)):
+				accessories.append(item)
+	return accessories
+
 func unequip_all():
 	for item in self.equipped_items:
 		unequip_item(item)
@@ -246,6 +281,24 @@ func set_inventory(new_inventory: Array):
 
 func is_equipped(item):
 	return self.equipped_items.has(item)
+
+# This works out if the player has a specific item in their inventory
+func has_in_posession(item_name: String):
+	for item in self.inventory:
+		if(item.equipment_name == item_name):
+			return true
+	for item in self.equipped_items:
+		if(item.equipment_name == item_name):
+			return true
+	return false
+
+# This works out if a domino is in the player's deck
+func has_in_stack(domino_name: String):
+	for domino in self.get_draw_pile():
+		if(domino.domino_name == domino_name):
+			return true
+	return false
+
 
 func get_immunity(state_name: String):
 	var current_immunity = self.immunity
@@ -300,6 +353,10 @@ func get_action_points_per_turn():
 	for item in self.equipped_items:
 		if "action_points_per_turn" in item.alter_stats():
 			final_action_points_per_turn += item.alter_stats()["action_points_per_turn"]
+	for effect in self.effects:
+		if effect.event_type == "action_points_per_turn":
+			print(effect.get_triggers(), " triggers")
+			final_action_points_per_turn += effect.get_triggers()
 	return int(max(0, final_action_points_per_turn))
 
 func get_hand():
@@ -367,6 +424,13 @@ func get_discard_pile():
 
 func get_void_space():
 	return self.void_space
+
+func pernament_domino_removal(domino: DominoContainer):
+	self.deck.erase(domino)
+	if domino.is_inside_tree():
+		domino.queue_free()
+	return
+	
 
 func remove_from(selected_domino: DominoContainer, type: String):
 	#print("[Battle.gd - remove_from] Removing ", selected_domino.domino_name, " from ", type)
@@ -496,7 +560,6 @@ func add_dominos_to_deck(domino_name: String, amount: int, type: String = "Attac
 			self.add_to_draw_pile(new_domino, "top_stack")
 		else:
 			self.add_to_draw_pile(new_domino, "")
-		new_domino.connect("domino_pressed", game, "_on_domino_pressed")
 	if(shuffle && !top_stack):
 		self.draw_pile = shuffle_deck(self.get_draw_pile())
 
@@ -508,10 +571,6 @@ func add_dominos_to_hand(domino_name: String, amount: int, type: String = "Attac
 		new_domino.set_temporary(true)
 		new_domino.set_user(self.battler_type)
 		self.add_to_hand(new_domino, "", false)
-		# Check if signal is already connected before connecting
-		if not new_domino.is_connected("domino_pressed", game, "_on_domino_pressed"):
-			new_domino.connect("domino_pressed", game, "_on_domino_pressed")
-	
 func add_to_deck(domino: DominoContainer, type: String):
 	domino.set_user(type)
 	
@@ -615,7 +674,7 @@ func get_initial_draw() -> int:
 	return self.initial_draw
 	
 func get_deck():
-	print("get_deck() called | deck size: ", self.deck.size())
+	#print("get_deck() called | deck size: ", self.deck.size())
 	return self.deck
 
 func spend_action_points(amount: int):
@@ -767,6 +826,31 @@ func get_state_turns(state_name: String):
 				return -1
 	return 0
 
+func modify_state_turns(state_name: String, amount: int):
+	for effect in self.effects:
+		if effect.effect_name.to_upper() == state_name.to_upper():
+			if(!self.is_state_affected(state_name)):
+				var new_effect = load("res://Effect/" + state_name + ".gd").new()
+				new_effect.duration = amount
+				apply_effect(new_effect)
+			elif effect.get_duration() != -1:
+				effect.extend_duration(amount)
+	return 
+
+func modify_state_triggers(state_name: String, amount: int):
+	for effect in self.effects:
+		if effect.effect_name.to_upper() == state_name.to_upper():
+			if(!self.is_state_affected(state_name)):
+				var new_effect = load("res://Effect/" + state_name + ".gd").new()
+				new_effect.triggers = amount
+				apply_effect(new_effect)
+			elif effect.get_triggers() != -1:
+				effect.extend_triggers(amount)
+	return
+
+func apply_passives():
+	pass;
+
 #=========================================================================
 # HP and shields
 #=========================================================================
@@ -871,6 +955,15 @@ func on_turn_end():
 	var effect_data = {"user": self}
 	for effect in self.effects:
 		effect.on_event("on_turn_end", effect_data)
+
+	
+	# Discard dominos
+	# TO DO / TO-DO / REQUIRES FIX
+	#if !self.keep_hand:
+		#print("Removing " + str(self.get_hand().get_child_count()) + " dominos from hand")
+		#for domino in self.get_hand().get_children():
+			#self.add_to_discard_pile(domino, "hand")
+
 	refresh_action_points()
 
 func battle_start():
@@ -879,6 +972,8 @@ func battle_start():
 		#print("Applying start of battle effect for ", equip.equipment_name)
 		equip.apply_start_of_battle_effect()
 	self.draw_pile = shuffle_deck(self.get_draw_pile())
+	self.apply_passives()
+	self.refresh_action_points()
 
 func battle_pose():
 	yield(get_tree().create_timer(0.5), "timeout")

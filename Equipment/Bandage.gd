@@ -4,7 +4,7 @@ func initiate_equipment():
 	set_parameters({
 		"set_name": "Bandage",
 		"set_criteria": ["common", "any"],
-		"set_description": "Binds wounds and provides relief from injuries. Heal " + str(heal_value()) + " HP at the start of battle if HP is 50% or less",
+		"set_description": "Binds wounds and provides relief from injuries. Heal " + str(heal_value()) + " HP at the start of battle if HP is " + str(50 + (get_upgrade_level() - 1) * 10)+"% or less",
 		"set_icon": "res://Equipment/Icons/bandage.png"
 		})
 
@@ -26,5 +26,5 @@ func heal_value() -> int:
 
 func apply_start_of_battle_effect():
 	.apply_start_of_battle_effect()
-	if(equip_owner.hp < equip_owner.get_max_hp() * 0.5):
+	if(equip_owner.hp < equip_owner.get_max_hp() * (50 + (get_upgrade_level() - 1) * 10)):
 		equip_owner.heal(heal_value())

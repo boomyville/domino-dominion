@@ -1,6 +1,6 @@
 extends Effects
 
-# Only allows attacks to be played
+# Adds a Phantom Arrow to the user's hand at the start of their turn
 
 func _init():
 	event_type = "turn_start"

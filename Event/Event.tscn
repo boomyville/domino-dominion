@@ -171,11 +171,13 @@ rect_min_size = Vector2( 960, 540 )
 color = Color( 0.317647, 0.0705882, 0.0705882, 1 )
 
 [node name="PlayerSprite" parent="Node2D" instance=ExtResource( 4 )]
+frame = 2
 
 [node name="NPCBust" type="AnimatedSprite" parent="Node2D"]
 position = Vector2( 216, 396 )
 frames = SubResource( 16 )
 animation = "BoomarianHealer"
+frame = 3
 playing = true
 flip_h = true
 
@@ -214,7 +216,6 @@ rect_min_size = Vector2( 840, 140 )
 [node name="WindowCursor" type="AnimatedSprite" parent="Node2D/VBoxContainer/NinePatchRect"]
 position = Vector2( 418, 146 )
 frames = SubResource( 21 )
-frame = 1
 playing = true
 
 [node name="RichTextLabel" type="RichTextLabel" parent="Node2D/VBoxContainer/NinePatchRect"]
@@ -320,6 +321,7 @@ margin_right = 208.0
 margin_bottom = 274.0
 
 [node name="TextContainer" type="ScrollContainer" parent="Node2D"]
+visible = false
 margin_left = 1.0
 margin_top = 220.0
 margin_right = 801.0
@@ -328,6 +330,7 @@ rect_min_size = Vector2( 800, 60 )
 mouse_filter = 2
 
 [node name="DebugText" type="Label" parent="Node2D/TextContainer"]
+modulate = Color( 1, 1, 1, 0.243137 )
 margin_right = 60.0
 margin_bottom = 14.0
 custom_fonts/font = ExtResource( 16 )

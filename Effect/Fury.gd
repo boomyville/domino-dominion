@@ -2,6 +2,7 @@ extends Effects
 
 # Increases damage by X
 # Reduces by 1 per turn
+# Works by duration
 
 func _init():
 	event_type = "modify_damage"

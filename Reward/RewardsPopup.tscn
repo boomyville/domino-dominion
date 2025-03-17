@@ -70,7 +70,7 @@ margin_right = 664.0
 margin_bottom = 40.0
 rect_min_size = Vector2( 120, 40 )
 custom_fonts/font = ExtResource( 2 )
-text = "Deck"
+text = "Stack"
 
 [connection signal="pressed" from="Node2D/HBoxContainer2/Button" to="." method="_on_Button_pressed"]
 [connection signal="pressed" from="Node2D/HBoxContainer2/InventoryButton" to="." method="_on_InventoryButton_pressed"]

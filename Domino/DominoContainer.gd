@@ -122,6 +122,7 @@ func set_user(new_user: String):
 	self.current_user = new_user.to_upper()
 	update_domino()
 
+# User is the original owner of the domino
 func get_user() -> String:
 	return user
 
@@ -129,6 +130,7 @@ func set_current_user(new_user: String):
 	self.current_user = new_user.to_upper()
 	update_domino()
 
+# Current user is the current owner; may change due to domino effects throughout the course of battle
 func get_current_user() -> String:
 	return self.current_user
 
@@ -153,7 +155,26 @@ func get_pip_value() -> Array:
 	return returned_value
 	
 func get_action_points() -> int:
-	return action_point_cost
+	# return action_point_cost
+	var cost = action_point_cost
+
+	if(get_user().to_upper() == "PLAYER" || get_user().to_upper() == "ENEMY"):
+		for effect in Game.get_node("Game").string_to_battler(get_user()).effects:
+			if self.is_skill():
+				cost += effect.modify_action_points_cost()["skill"]
+				#print("Skill cost: ", effect.modify_action_points_cost()["skill"])
+			elif self.is_attack():
+				cost += effect.modify_action_points_cost()["attack"]
+			else:
+				cost += effect.modify_action_points_cost()["all"]
+
+	return cost
+
+func is_skill() -> bool:
+	return "Skill/" in self.filename
+
+func is_attack() -> bool:
+	return "Attack/" in self.filename
 
 func set_temporary(value: bool):
 	temporary = value
@@ -195,6 +216,9 @@ func upgrade_domino(value: int = 1) -> bool:
 		return true
 	return false
 
+func remove_domino_permanently():
+	Game.get_node("Game").string_to_battler(self.get_user()).pernament_domino_removal(self)
+
 func set_upgrade_level(value: int):
 	upgrade_level = max(0, min(self.get_max_upgrade_level(), value))
 	current_upgrade_level = upgrade_level
@@ -207,6 +231,21 @@ func can_upgrade(over_upgrade = false) -> bool:
 		return upgrade_level < get_max_upgrade_level()
 	else:
 		return upgrade_level < get_max_upgrade_level() - 1
+
+func get_value() -> int:
+	var value = 0
+	if(get_criteria().has("common")):
+		value += 10
+	if(get_criteria().has("uncommon")):
+		value += 18
+	if(get_criteria().has("rare")):
+		value += 30
+	if(!get_criteria().has("any")):
+		value += 6
+	if(get_criteria().has("unique")):
+		value *= 1.4
+	return int(value)
+
 
 # Sets maximum upgrade level based on rarity
 func initiate_domino() -> void:
@@ -239,8 +278,8 @@ func update_domino():
 		set_clickable(true)
 
 	# Update action points cost
-	if(action_point_cost > 0 && user.to_upper() != "BOARD"):
-		$DominoLabel/ActionPointLabel.text = str(action_point_cost)
+	if(get_action_points() > 0 && user.to_upper() != "BOARD"):
+		$DominoLabel/ActionPointLabel.text = str(get_action_points())
 		$DominoLabel/ActionPointCircle.show()
 		$DominoLabel/ActionPointLabel.show()
 	else:
@@ -327,7 +366,7 @@ func can_play(last_played_number: int, playing_user, target, pressed_number: int
 		return result # Unplayable if not in default game state or petrified
 	elif is_petrified():
 		return "petrification" 
-	elif action_point_cost > playing_user.action_points:
+	elif get_action_points() > playing_user.action_points:
 		return "action_points_deficiency" 
 	elif(requirements(playing_user, target) == false):
 		return "prohibited"

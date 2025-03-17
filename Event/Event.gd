@@ -63,7 +63,7 @@ func _ready():
 	#Game.get_node("Game").player.hp = 34
 	#Game.get_node("Game").player.gems += 102
 	# sacrifice_event, equipment_offering, healer_event, thorny_treasure, gamble_matching_domino
-	new_event("free_upgrade")
+	new_event("remove_domino_event")
 	reset()
 
 func new_event(event: String):
@@ -84,6 +84,12 @@ func new_event(event: String):
 			free_heal()
 		"free_upgrade":
 			free_upgrade()
+		"upgrade_equipment_event":
+			upgrade_equipment_event()
+		"cursed_upgrade_equipment":
+			cursed_upgrade_equipment()
+		"remove_domino_event":
+			remove_domino_event()
 		"random":
 			random_event()
 		_:
@@ -99,12 +105,15 @@ func random_event():
 		"equipment_offering",
 		"healer",
 		"thorny_treasure",
-		"gamble_matching_domino"
+		"gamble_matching_domino",
+		"cursed_upgrade_equipment",
+		"remove_domino_event"
 	]
 
 	var perennial_events = [
 		"thorny_treasure",
-		"gamble_matching_domino"
+		"gamble_matching_domino",
+		"upgrade_equipment_event"
 	]
 
 	# Remove events that the player has encountered
@@ -282,7 +291,7 @@ func type_text(text: String):
 func _input(event):
 	update_debug_text()
 
-	if event is InputEventMouseButton and event.pressed and active == true:
+	if $AnimationPlayer.is_playing() == false and event is InputEventMouseButton and event.pressed and active == true and Game.get_node("Game").selection_popup.visible == false:
 
 		print("Can process input: ", can_process_input, " | Current event index: ", current_event_index, " VBOX visible: ", $VBoxContainer.visible)
 
@@ -544,6 +553,304 @@ func remove_set_unequipped_equipment(equipment, reward_type: String = "gems", re
 		reward([reward_type, gem_amount])
 		event_data = insert_array(event_data, current_event_index + 1, equipment_event)
 		
+	return
+
+func remove_domino(removed_domino: DominoContainer, reward_array: Array):
+	add_event_log("domino_lost", removed_domino.get_domino_name())
+	var removal_msg = "I'll take that " + removed_domino.get_domino_name() + " off your hands."
+	#print("Removing domino: ", removed_domino.get_name())
+	Game.get_node("Game").string_to_battler("player").pernament_domino_removal(removed_domino)
+	
+
+	var reward_msg = ""
+	if reward_array[0] == "gems":
+		reward_msg += str(reward_array[1]) + " gems"
+	else:
+		reward_msg += reward_array[1]
+
+	var removal_event = [
+		{ "speaker": npc_name, "text": removal_msg},
+		{ "speaker": "Player", "text": "Hey! I might need that..."},
+		{ "speaker": npc_name, "text": "Well you might need this too (gained " + reward_msg + ")" },
+		{ "speaker": "Player", "text": "Haha. Yeah, can't go wrong with " + reward_msg + "!"}
+	]
+	event_data = insert_array(event_data, current_event_index + 1, removal_event)
+	
+	reward(reward_array)
+
+# Removes a set number of dominos from the player's deck (player chooses)
+func remove_set_dominos(number_of_dominos: int, reward_array: Array):
+	remove_domino_permanently(["domino", number_of_dominos])
+
+	var reward_msg = ""
+	if reward_array[0] == "gems":
+		reward_msg += str(reward_array[1]) + " gems"
+	else:
+		reward_msg += reward_array[1]
+
+
+	var removal_event = [
+		{ "speaker": npc_name, "text": "..."},
+		{ "speaker": npc_name, "text": "Not what I was looking for but thanks."},
+		{ "speaker": npc_name, "text": "Beggars can't be choosers, I guess." },
+		{ "speaker": npc_name, "text": "Take this (gained " + reward_msg + ")" },
+		{ "speaker": "Player", "text": "No problem!"}
+	]
+	event_data = insert_array(event_data, current_event_index + 1, removal_event)
+	
+	reward(reward_array)
+	
+	return
+
+# Removes a random number of dominos from the player's deck
+func remove_random_dominos(number_of_dominos: int, reward_array: Array):
+	var removed_dominos = []
+	for _i in range(number_of_dominos):
+		var domino = Game.get_node("Game").string_to_battler("player").get_deck()[randi() % Game.get_node("Game").string_to_battler("player").get_deck().size()]
+		add_event_log("domino_lost", domino.get_name())
+		removed_dominos.append(domino.get_domino_name())
+		Game.get_node("Game").string_to_battler("player").pernament_domino_removal(domino)
+	
+	var domino_lost_msg = ""
+	for _i in range(removed_dominos.size()):
+		if _i == removed_dominos.size() - 1 and removed_dominos.size() > 1:
+			domino_lost_msg += " and "
+		domino_lost_msg += removed_dominos[_i]
+		if _i < removed_dominos.size() - 2:
+			domino_lost_msg += ", "
+
+	var reward_msg = ""
+	if reward_array[0] == "gems":
+		reward_msg += str(reward_array[1]) + " gems"
+	else:
+		reward_msg += reward_array[1]
+
+	var removal_event = [
+		{ "speaker": "Player", "text": "Hmm, yeah I have a few dominos I could spare."},
+		{ "speaker": npc_name, "text": "Let me see..."},
+		{ "speaker": npc_name, "text": "I'll take " + domino_lost_msg + " off your hands." },
+		{ "speaker": npc_name, "text": "And take this as a thank you (gained " + reward_msg + ")" },
+		{ "speaker": "Player", "text": "Hey... okay. Thanks?"}
+	]
+	event_data = insert_array(event_data, current_event_index + 1, removal_event)
+	
+	reward(reward_array)
+	
+	return
+
+
+# Creates a selection popup and removes a selected domino
+func remove_domino_permanently(arguments: Array = ["domino", 1], jump_to_index: int = -1):
+	print("Removing domino permanently ", arguments)
+	match arguments[0]:
+		"domino":
+			var removable_dominos = Game.get_node("Game").player.get_deck()
+			
+			#print("Removable dominos: ", removable_dominos.size())	
+			if removable_dominos.size() >= arguments[1]:
+				Game.get_node("Game").domino_selection(arguments[1], arguments[1], null, "player", "REMOVABLE_STACK", -1, "REMOVABLE_STACK", {"remove_domino_permanently": []})
+			else:
+				Game.get_node("Game").domino_selection(0, arguments[1], null, "player", "REMOVABLE_STACK", -1, "REMOVABLE_STACK", {"remove_domino_permanently": []})
+
+			var remove_event = [
+				{ "speaker": "Player", "text": "..." },
+				{ "speaker": "Player", "text": "Well, hopefully I won't be needing that again." }
+			]
+			
+			var jump_to_event = [
+				{ "jump_to": jump_to_index }	
+			]
+
+			event_data = insert_array(event_data, current_event_index + 1, remove_event)
+
+			if jump_to_index is int:
+				if(jump_to_index != -1):
+					event_data = insert_array(event_data, current_event_index + remove_event.size() + 1, jump_to_event)
+
+			return
+
+		"random":
+			var removable_dominos = Game.get_node("Game").player.get_deck()
+			var removed_dominos = []
+			
+			removable_dominos.shuffle()
+			for i in range(arguments[1]):
+				if removable_dominos.size() > 0:
+					removed_dominos.append(removable_dominos[i].get_domino_name())
+					add_event_log("domino_removed", removable_dominos[i].get_domino_name())
+					removable_dominos[i].remove_domino()
+
+			var remove_text = ""
+			for _i in range(removed_dominos.size()):
+				if _i == removed_dominos.size() - 1:
+					remove_text += removed_dominos[_i]
+				else:
+					remove_text += removed_dominos[_i] + ", "
+
+			var remove_event = [
+				
+				{ "speaker": "Player", "text": "..." },
+				{ "speaker": "Player", "text": "Hey! My " + remove_text + " are gone now!" }
+			]
+			
+			var jump_to_event = [
+				{ "jump_to": jump_to_index }	
+			]
+
+			event_data = insert_array(event_data, current_event_index + 1, remove_event)
+
+			if jump_to_index is int:
+				if(jump_to_index != -1):
+					event_data = insert_array(event_data, current_event_index + remove_event.size() + 1, jump_to_event)
+
+			return
+
+# Creates a selection popup and upgrades the selected domino
+func upgrade_domino(arguments: Array = ["domino", 1], jump_to_index: int = -1):
+	match arguments[0]:
+		"domino":
+			var upgradable_dominos = []
+			for domino in Game.get_node("Game").player.get_deck():
+				if domino.can_upgrade():
+					upgradable_dominos.append(domino)
+			
+			if upgradable_dominos.size() >= arguments[1]:
+				Game.get_node("Game").domino_selection(arguments[1], arguments[1], null, "player", "UPGRADABLE_STACK", -1, "UPGRADABLE_STACK", {"upgrade_domino": [1]})
+			else:
+				Game.get_node("Game").domino_selection(0, arguments[1], null, "player", "UPGRADABLE_STACK", -1, "UPGRADABLE_STACK", {"upgrade_domino": [1]})
+		"random":
+			var upgradable_dominos = []
+			var upgraded_dominos = []
+			for domino in Game.get_node("Game").player.get_deck():
+				if domino.can_upgrade():
+					upgradable_dominos.append(domino)
+			upgradable_dominos.shuffle()
+			for i in range(arguments[1]):
+				if upgradable_dominos.size() > 0:
+					upgradable_dominos[i].upgrade_domino(1)
+					upgraded_dominos.append(upgradable_dominos[i].get_domino_name())
+					add_event_log("domino_upgraded", upgradable_dominos[i].get_domino_name())
+
+			var upgrade_text = ""
+			for _i in range(upgraded_dominos.size()):
+				if _i == upgraded_dominos.size() - 1:
+					upgrade_text += upgraded_dominos[_i]
+				else:
+					upgrade_text += upgraded_dominos[_i] + ", "
+
+			var upgrade_event = [
+				{ "speaker": "Player", "text": "Wow! " + upgrade_text + " just got upgraded!" }
+			]
+			
+			var jump_to_event = [
+				{ "jump_to": jump_to_index }	
+			]
+
+			event_data = insert_array(event_data, current_event_index + 1, upgrade_event)
+
+			if jump_to_index is int:
+				if(jump_to_index != -1):
+					event_data = insert_array(event_data, current_event_index + upgrade_event.size() + 1, jump_to_event)
+
+			return
+			
+
+# Equipment upgrade: equipment, cost type (default: gems), cost value (default: 0), upgrade value (default: 1), over upgrade (default: false)
+func upgrade_equipment(equipment, cost_type: String = "gems", cost_value: int = 0, upgrade_value: int = 1, over_upgrade: bool = false):
+	match cost_type:
+		"gems":
+			if Game.get_node("Game").string_to_battler("player").get_gems() >= cost_value:
+				Game.get_node("Game").string_to_battler("player").add_gems(-cost_value)
+				add_event_log("gems_gained", -cost_value)
+				var upgrade_happened = equipment.upgrade_equipment(upgrade_value, over_upgrade) 
+				if upgrade_happened:	
+					var upgrade_event = [
+						{ "speaker": npc_name, "text": "Thank you for your " + str(cost_value) + " gems." },
+						{ "speaker": "Player", "text": "Haha... You better do a good job!" },
+						{ "speaker": npc_name, "text": "Here is your upgraded " + equipment.get_equipment_name_with_bb_code() + "." }			
+					]
+					add_event_log("equip_upgraded", equipment.equipment_name)
+					event_data = insert_array(event_data, current_event_index + 1, upgrade_event)
+				else:
+					var upgrade_event = [
+						{ "speaker": npc_name, "text": "Sorry, I can't upgrade this equipment any further." },		
+						{ "speaker": "Player", "text": "But you took my gems..." },
+						{ "speaker": npc_name, "text": "Yeah, here are your " + str(cost_value) + " gems back." }				
+					]
+					Game.get_node("Game").string_to_battler("player").add_gems(cost_value)
+					add_event_log("gems_gained", cost_value)
+					event_data = insert_array(event_data, current_event_index + 1, upgrade_event)
+		"hp":					
+			Game.get_node("Game").string_to_battler("player").self_damage(cost_value, false)
+			add_event_log("hp_gained", -cost_value)
+			var upgrade_happened = equipment.upgrade_equipment(upgrade_value, over_upgrade) 
+			if upgrade_happened:	
+				var upgrade_event = [
+					{ "speaker": "Player", "text": "Ouch! That really hurt!" },
+					{ "speaker": "Player", "text": "Well at least my " + equipment.get_equipment_name_with_bb_code() + " looks a bit more shiny now." }			
+				]
+				add_event_log("equip_upgraded", equipment.equipment_name)
+				event_data = insert_array(event_data, current_event_index + 1, upgrade_event)
+			else:
+				var upgrade_event = [
+					{ "speaker": "Player", "text": "Ow! What the heck!?" },
+					{ "speaker": "Player", "text": "Nothing happened!?" }			
+				]
+				event_data = insert_array(event_data, current_event_index + 1, upgrade_event)
+		"max_hp":							
+			Game.get_node("Game").string_to_battler("player").max_hp -= cost_value
+			add_event_log("max_hp_gained", -cost_value)
+			var upgrade_happened = equipment.upgrade_equipment(upgrade_value, over_upgrade) 
+			if upgrade_happened:	
+				var upgrade_event = [
+					{ "speaker": "Player", "text": "Ouch! That really hurt!" },
+					{ "speaker": "Player", "text": "Well at least my " + equipment.get_equipment_name_with_bb_code() + " looks a bit more shiny now." }			
+				]
+				add_event_log("equip_upgraded", equipment.equipment_name)
+				event_data = insert_array(event_data, current_event_index + 1, upgrade_event)
+			else:
+				var upgrade_event = [
+					{ "speaker": "Player", "text": "Ow! What the heck!?" },
+					{ "speaker": "Player", "text": "Nothing happened!?" }			
+				]
+				event_data = insert_array(event_data, current_event_index + 1, upgrade_event)
+		"random_domino":
+			var erased_dominos = []
+			for _i in range(cost_value):
+				var domino = Game.get_node("Game").string_to_battler("player").get_deck()[randi() % Game.get_node("Game").string_to_battler("player").get_deck().size()]
+				add_event_log("domino_lost", domino.get_domino_name())
+				erased_dominos.append(domino.get_domino_name())
+				Game.get_node("Game").string_to_battler("player").pernament_domino_removal(domino)
+		
+			add_event_log("equip_upgraded", equipment.equipment_name)
+				
+			var domino_lost_msg = ""
+			for _i in range(erased_dominos.size()):
+				if _i == erased_dominos.size() - 1 and erased_dominos.size() > 1:
+					domino_lost_msg += " and "
+				domino_lost_msg += erased_dominos[_i]
+				if _i < erased_dominos.size() - 2:
+					domino_lost_msg += ", "
+			var upgrade_event = [
+				{ "speaker": "Player", "text": "I hope I don't need these dominos again..."},
+				{ "speaker": "Player", "text": "I lost " + domino_lost_msg + " to upgrade this " + equipment.get_equipment_name_with_bb_code() + "." }
+			]
+			event_data = insert_array(event_data, current_event_index + 1, upgrade_event)
+
+		"curse":
+			add_event_log("curse_added_to_equip", equipment.get_name())
+			add_event_log("equip_upgraded", equipment.equipment_name)
+			equipment.upgrade_equipment(upgrade_value, over_upgrade) 
+			equipment.cursed = true
+
+			var upgrade_event = [
+				{ "speaker": "Player", "text": "Not sure if this was the right course of action..." },
+				{ "speaker": "Player", "text": "But this " + equipment.get_equipment_name_with_bb_code() + " feels really powerful now." }			
+			]
+			event_data = insert_array(event_data, current_event_index + 1, upgrade_event)
+
+		_:
+			print("Invalid cost type.")
 	return
 
 func remove_random_unequipped_equipment(reward_type: String = "gems", reward_amount: int = 0):
@@ -842,7 +1149,137 @@ func equipment_offering():
 
 	var unequipped_equipment = Game.get_node("Game").string_to_battler("player").get_unquipped_items()
 	if unequipped_equipment.size() > 0:
-		event_data[4]["option"].append({"name": "Offer " + unequipped_equipment[0].equipment_name, "method": "remove_set_unequipped_equipment", "args": [unequipped_equipment[0], "gems", round( unequipped_equipment[0].get_value() * 0.6)]})
+		event_data[4]["option"].append({"name": "Offer " + unequipped_equipment[0].get_name(), "method": "remove_set_unequipped_equipment", "args": [unequipped_equipment[0], "gems", round( unequipped_equipment[0].get_value() * 0.6)]})
+
+# Equipment upgrade: equipment, cost type (default: gems), cost value (default: 0), upgrade value (default: 1), over upgrade (default: false)
+func upgrade_equipment_event():
+
+	set_event_name("smithing_event")
+
+	var unequipped_equipment = Game.get_node("Game").string_to_battler("player").get_unquipped_items(true, false)
+	var cost_factor = 0.01 * (randi() % 30 + 50) # 50-80% of the equipment value
+
+	npc_name = "BoomarianCivilian1"
+
+	event_data = [
+		{ "speaker": "Player", "text": "Hello!" },
+		{ "speaker": npc_name, "text": "Greetings! I am a blacksmith and can upgrade your equipment." },
+		{ "speaker": "Player", "text": "Hmm... I presume for a fee?" },
+		{ "speaker": npc_name, "text": "Of course! So what do ya say? Anything you want to upgrade?" },
+		{ "option": [	
+			{ "name": "No thanks", "method": "continue", "args": ["no_thanks"] },
+		]}
+	]	
+
+	# Upgrade a random unequipped item at 0.4 its potential cost
+	if unequipped_equipment.size() > 0:
+		print("Unequpped: ", unequipped_equipment, " equipped: ", Game.get_node("Game").string_to_battler("player").get_equipped_accessories(true, false))
+		var random_unequipped_equip = unequipped_equipment[randi() % unequipped_equipment.size()]
+		if Game.get_node("Game").string_to_battler("player").get_gems() > round(random_unequipped_equip.get_value() * cost_factor * 0.4):
+			event_data[4]["option"].append({"name": "Upgrade " + random_unequipped_equip.get_name() + " (" + str(round(random_unequipped_equip.get_value() * cost_factor * 0.4)) +" gems)", "method": "upgrade_equipment", "args": [random_unequipped_equip, "gems", round(random_unequipped_equip.get_value() * cost_factor * 0.4), 1, false]})
+		
+	# Upgrade a random equipped accessory at 0.5 to 0.8 to its equipment value
+	if Game.get_node("Game").string_to_battler("player").get_equipped_accessories(true, false).size() > 0:
+		var accessories = Game.get_node("Game").string_to_battler("player").get_equipped_accessories(true, false)
+		accessories.shuffle()
+		if Game.get_node("Game").string_to_battler("player").get_gems() > round(accessories[0].get_value() * cost_factor):
+			event_data[4]["option"].append({"name": "Upgrade " + accessories[0].get_name()  + " (" + str(round(accessories[0].get_value() * cost_factor))  + " gems)", "method": "upgrade_equipment", "args": [accessories[0], "gems", round(accessories[0].get_value() * cost_factor), 1, false]})
+		
+		# Upgrade a second random equipped accessory at 0.5 to 0.8 to its equipment value
+		if accessories.size() > 1:
+			event_data[4]["option"].append({"name": "Upgrade " + accessories[1].get_name() + " (" + str(round(accessories[1].get_value() * cost_factor)) +" gems)", "method": "upgrade_equipment", "args": [accessories[1], "gems", round(accessories[1].get_value() * cost_factor), 1, false]})
+	
+	# Upgrade equipped weapon at 0.5 to 0.8 to its equipment value
+	if Game.get_node("Game").string_to_battler("player").get_equipped_weapon():
+		if Game.get_node("Game").string_to_battler("player").get_equipped_weapon().can_upgrade(false):
+			if Game.get_node("Game").string_to_battler("player").get_gems() > round(Game.get_node("Game").string_to_battler("player").get_equipped_weapon().get_value() * cost_factor):
+				event_data[4]["option"].append({"name": "Upgrade " + Game.get_node("Game").string_to_battler("player").get_equipped_weapon().equipment_name + " (" + str(round(Game.get_node("Game").string_to_battler("player").get_equipped_weapon().get_value() * cost_factor)) +" gems)", "method": "upgrade_equipment", "args": [Game.get_node("Game").string_to_battler("player").get_equipped_weapon(), "gems", round(Game.get_node("Game").string_to_battler("player").get_equipped_weapon().get_value() * cost_factor), 1, false]})
+	
+	return
+
+func remove_domino_event():
+
+	set_event_name("domino_donation")
+
+	var dominos = Game.get_node("Game").string_to_battler("player").get_deck()
+	var random_domino = dominos[randi() % dominos.size()]
+	var random_number = min(randi() % 3 + 2, dominos.size())
+	var reward_gems = randi() % 12 + 12
+
+	npc_name = "BoomarianCivilian3"
+
+	event_data = [
+		{ "speaker": "Player", "text": "Hi." },
+		{ "speaker": npc_name, "text": "Hello! Do you have any spare dominos I could take?" },
+		{ "option": [	
+			{ "name": "Leave", "method": "continue", "args": ["no_thanks"] },
+			{ "name": "Offer " + str(random_number) + " random dominos", "method": "remove_random_dominos", "args": [random_number, ["gems", reward_gems]] },
+			{ "name": "Offer a specific domino", "method": "remove_set_dominos", "args": [1, ["gems", floor(reward_gems / 4)]] },
+			{ "name": "Offer " + random_domino.get_domino_name(), "method": "remove_domino", "args": [random_domino, ["gems", floor(reward_gems * 1.5)]] }
+		]}
+	]	
+
+	return
+
+func cursed_upgrade_equipment():
+
+	set_event_name("cursed_equipment_upgrade_event")
+	
+	var unequipped_equipment = Game.get_node("Game").string_to_battler("player").get_unquipped_items(true, false)
+	var hp_cost = 10 + randi() % 6 # Lose 10-15 HP
+	var domino_cost = floor(sqrt(Game.get_node("Game").string_to_battler("player").get_deck().size() * 0.5))
+	
+	event_data = [
+		{ "speaker": "Player", "text": "There is some insane energy radiating from this place." },
+		{ "speaker": "Player", "text": "The ancient text says 'Bless thy items... but at what cost?'" },
+		{ "option": [	
+			{ "name": "Leave", "method": "continue", "args": ["time_to_go"] }
+		]}
+	]	
+
+	# Option 1
+	# Upgrade a random unequipped item for 10-15 HP (50% chance)
+	if randf() > 0.5:
+		if unequipped_equipment.size() > 0 and Game.get_node("Game").string_to_battler("player").hp > hp_cost - 5:
+			var random_unequipped_equip = unequipped_equipment[randi() % unequipped_equipment.size()]
+			event_data[2]["option"].append({"name": "Upgrade " + random_unequipped_equip.get_name() + " for " + str(hp_cost) + "HP", "method": "upgrade_equipment", "args": [random_unequipped_equip, "hp", hp_cost - 5, 1, false]})
+	elif randf() > 0.5: #25% chance it costs 40% of max_hp
+		if unequipped_equipment.size() > 0 and Game.get_node("Game").string_to_battler("player").max_hp > round(0.4* hp_cost):
+			var random_unequipped_equip = unequipped_equipment[randi() % unequipped_equipment.size()]
+			event_data[2]["option"].append({"name": "Upgrade " + random_unequipped_equip.get_name() + " for " + str(round(0.4*hp_cost)) + " max HP", "method": "upgrade_equipment", "args": [random_unequipped_equip, "max_hp", round(0.4 * hp_cost), 1, false]})		
+	
+	# Option 2
+	# Upgrade a random equipped accessory for 10-15 HP
+	if Game.get_node("Game").string_to_battler("player").get_equipped_accessories(true, false).size() > 0 and Game.get_node("Game").string_to_battler("player").hp > hp_cost:
+		var accessories = Game.get_node("Game").string_to_battler("player").get_equipped_accessories(true, false)
+		accessories.shuffle()
+		event_data[2]["option"].append({"name": "Upgrade " + accessories[0].get_name() + " for " + str(hp_cost) + "HP", "method": "upgrade_equipment", "args": [accessories[0], "hp", hp_cost, 1, false]})
+		# Option 3
+		if accessories.size() > 1 and randf() > 0.5: # 50% chance for second option to require HP
+			event_data[2]["option"].append({"name": "Upgrade " + accessories[1].get_name() + " for " + str(hp_cost) + "HP", "method": "upgrade_equipment", "args": [accessories[1], "hp", hp_cost, 1, false]})
+	
+	# Option 4
+	# Upgrade equipped weapon for 10-15 HP (50% chance)
+	if randf() > 0.5:
+		if Game.get_node("Game").string_to_battler("player").get_equipped_weapon() and Game.get_node("Game").string_to_battler("player").hp > hp_cost:
+			if Game.get_node("Game").string_to_battler("player").get_equipped_weapon().can_upgrade(false):
+				event_data[2]["option"].append({"name": "Upgrade " + Game.get_node("Game").string_to_battler("player").get_equipped_weapon().equipment_name + " for " + str(hp_cost) + "HP", "method": "upgrade_equipment", "args": [Game.get_node("Game").string_to_battler("player").get_equipped_weapon(), "hp", hp_cost, 1, false]})
+	elif randf() > 0.2: # 40% chance to upgrade weapon for a 40% hp_cost  of max_hp
+		if Game.get_node("Game").string_to_battler("player").get_equipped_weapon() and Game.get_node("Game").string_to_battler("player").max_hp > round(0.4* hp_cost):
+			if Game.get_node("Game").string_to_battler("player").get_equipped_weapon().can_upgrade(false):
+				event_data[2]["option"].append({"name": "Upgrade " + Game.get_node("Game").string_to_battler("player").get_equipped_weapon().equipment_name + " for " + str(round(0.4*hp_cost)) + " max HP", "method": "upgrade_equipment", "args": [Game.get_node("Game").string_to_battler("player").get_equipped_weapon(), "max_hp", round(0.4 * hp_cost), 1, false]})
+	else:
+		if Game.get_node("Game").string_to_battler("player").get_equipped_weapon():
+			if not Game.get_node("Game").string_to_battler("player").get_equipped_weapon().is_cursed():
+				event_data[2]["option"].append({"name": "Curse " + Game.get_node("Game").string_to_battler("player").get_equipped_weapon().equipment_name + " and upgrade to maximum level", "method": "upgrade_equipment", "args": [Game.get_node("Game").string_to_battler("player").get_equipped_weapon(), "curse", null, 3, true]})
+
+	# Upgrade equipped weapon for X dominos
+	# Option 4 if event_data[2]["option"].size() < 4
+	if randf() > 0.5 and event_data[2]["option"].size() < 4:
+		if domino_cost > 0:
+			event_data[2]["option"].append({"name": "Upgrade " + Game.get_node("Game").string_to_battler("player").get_equipped_weapon().equipment_name + " by sacrificing " + str(domino_cost) + " random domino(s)", "method": "upgrade_equipment", "args": [Game.get_node("Game").string_to_battler("player").get_equipped_weapon(), "random_domino", domino_cost, 1, false]})
+	
+	return
 
 # Gain healing or max HP buff
 func healer_event():
@@ -911,55 +1348,6 @@ func free_upgrade():
 		]}
 	]
 
-# Creates a selection popup and upgrades the selected domino
-func upgrade_domino(arguments: Array = ["domino", 1], jump_to_index: int = -1):
-	match arguments[0]:
-		"domino":
-			var upgradable_dominos = []
-			for domino in Game.get_node("Game").player.get_deck():
-				if domino.can_upgrade():
-					upgradable_dominos.append(domino)
-			
-			if upgradable_dominos.size() >= arguments[1]:
-				Game.get_node("Game").domino_selection(arguments[1], arguments[1], null, "player", "UPGRADABLE_STACK", -1, "UPGRADABLE_STACK", {"upgrade_domino": [1]})
-			else:
-				Game.get_node("Game").domino_selection(0, arguments[1], null, "player", "UPGRADABLE_STACK", -1, "UPGRADABLE_STACK", {"upgrade_domino": [1]})
-		"random":
-			var upgradable_dominos = []
-			var upgraded_dominos = []
-			for domino in Game.get_node("Game").player.get_deck():
-				if domino.can_upgrade():
-					upgradable_dominos.append(domino)
-			upgradable_dominos.shuffle()
-			for i in range(arguments[1]):
-				if upgradable_dominos.size() > 0:
-					upgradable_dominos[i].upgrade_domino(1)
-					upgraded_dominos.append(upgradable_dominos[i].get_domino_name())
-					add_event_log("domino_upgraded", upgradable_dominos[i].get_domino_name())
-
-			var upgrade_text = ""
-			for _i in range(upgraded_dominos.size()):
-				if _i == upgraded_dominos.size() - 1:
-					upgrade_text += upgraded_dominos[_i]
-				else:
-					upgrade_text += upgraded_dominos[_i] + ", "
-
-			var upgrade_event = [
-				{ "speaker": "Player", "text": "Wow! " + upgrade_text + " just got upgraded!" }
-			]
-			
-			var jump_to_event = [
-				{ "jump_to": jump_to_index }	
-			]
-
-			event_data = insert_array(event_data, current_event_index + 1, upgrade_event)
-
-			if jump_to_index is int:
-				if(jump_to_index != -1):
-					event_data = insert_array(event_data, current_event_index + upgrade_event.size() + 1, jump_to_event)
-
-			return
-			
 # Sacrifice health for a piece of equipment
 func thorny_treasure():
 

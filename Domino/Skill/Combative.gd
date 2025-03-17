@@ -14,13 +14,16 @@ func _init():
 
 func initiate_domino():
 	if(get_upgrade_level() == 4):
-		criteria = ["common", "physical"]
+		criteria = ["common", "physical", "top_stack"]
 	else:
 		criteria = ["common", "physical"]
 	.initiate_domino()
 	
 func get_description() ->  String:
-	return "Self: " + str(fury_value()) + BBCode.bb_code_fury() + "\nSelf: " + str(berserk_value()) + BBCode.bb_code_berserk()
+	if get_upgrade_level() == 4:
+		return "Top stack\nSelf: " + str(fury_value()) + BBCode.bb_code_fury() + "\nSelf: " + str(berserk_value()) + BBCode.bb_code_berserk()
+	else:
+		return "Self: " + str(fury_value()) + BBCode.bb_code_fury() + "\nSelf: " + str(berserk_value()) + BBCode.bb_code_berserk()
 
 func get_detailed_description():
 	var msg = get_pip_description()

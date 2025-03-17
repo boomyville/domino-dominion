@@ -24,7 +24,7 @@ func recreate_map(map_data: Dictionary, player_travelled_nodes: Array):
 				node_instance.set_visited(false)
 
 
-			if col > player_travelled_nodes.size() + 1:
+			if col > player_travelled_nodes.size() + Game.get_node("Game").player.get_map_foresight():
 				node_instance.set_visible(false)
 			else:
 				node_instance.set_visible(true)

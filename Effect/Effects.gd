@@ -53,11 +53,22 @@ func update_trigger(target):
 # Method to extend the effect's duration
 func extend_duration(extra_duration: int):
 	duration += extra_duration
+	if duration <= 0:
+		
+		print("Effect removed due to negative duration: ", effect_name)
+		attached_user.effects.erase(self)
+		attached_user.update()
 
 # Method to extend the effect's trigger count
 func extend_triggers(extra_triggers: int):
 	#print("Extending triggers for ", effect_name, " by ", extra_triggers, " | Current triggers: ", triggers)
 	triggers += extra_triggers
+	if triggers <= 0:
+		print("Effect removed due to negative triggers: ", effect_name)
+		attached_user.effects.erase(self)
+		attached_user.update()
+		#print("Effect removed: ", effect_name)
+		#print("Final triggers for ", effect_name, ": ", triggers)
 	#print("Final triggers for ", effect_name, ": ", triggers)
 
 # Override this method to handle specific events, like "damage" or "block"
@@ -89,6 +100,9 @@ func modify_heal(original_heal: int) -> int:
 
 func magnify_heal(original_heal: int) -> int:
 	return original_heal
+
+func modify_action_points_cost() -> Dictionary:
+	return {"all": 0, "attack": 0, "skill": 0}
 
 # Other trigger methods (override as needed)
 func full_block(damage_blocked: int, attacker, defender):

@@ -49,7 +49,8 @@ func _sort_by_name(a, b):
 
 # Show draw pile / discard pile / void space
 func setup_collection_popup(domino_array: Array, type: String):
-	if type.to_upper() == "DRAW":
+	print("Setting up collection popup for ", type)
+	if type.to_upper() == "DRAW" or type.to_upper() == "DISCARD" or type.to_upper() == "VOID" :
 		# Make a copy of the array prior to sorting
 		domino_array = domino_array.duplicate()
 		domino_array.sort_custom(self, "_sort_by_name")
@@ -125,8 +126,13 @@ func display_dominos():
 			msg += " discard"
 		"same_hand_upgrade":
 			msg += " upgrade"
+			dominos_to_display.sort_custom(self, "_sort_by_name")
 		"upgradable_stack":
 			msg += " upgrade" 
+			dominos_to_display.sort_custom(self, "_sort_by_name")
+		"removable_stack":
+			msg += " permanently remove" 
+			dominos_to_display.sort_custom(self, "_sort_by_name")
 
 	message.text = msg
 

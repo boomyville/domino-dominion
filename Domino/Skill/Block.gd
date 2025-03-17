@@ -39,7 +39,7 @@ func get_detailed_description():
 	msg += "Self: " + str(get_shield_value(shield_value())) +  BBCode.bb_code_shield() + " shields"
 
 	if get_upgrade_level() == 4:
-		msg += "\nSelf: " + BBCode.bb_code_fortitude() + " fortitude (max shields)"
+		msg += "\nSelf: " + str(floor(shield_value() / 2)) + " " + BBCode.bb_code_fortitude() + " fortitude (max shields)"
 	return msg
 
 func shield_value() -> int:

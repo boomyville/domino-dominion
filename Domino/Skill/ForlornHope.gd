@@ -5,7 +5,6 @@ extends DominoContainer
 # Downgrade - Adds restriction, cannot be used if any skills in hand
 # Upgrade+ - Right pip becomes wild
 # Upgrade++ - Gain 1 action point
-# Upgrade+++ - Lose bottom_stack
 
 func _init():
 	domino_name = "Forlorn Hope"
@@ -14,16 +13,13 @@ func _init():
 func initiate_domino():
 	match get_upgrade_level():
 		0, 1:
-			criteria = ["starter", "bottom_stack"]
+			criteria = ["uncommon", "bottom_stack"]
 			pip_data = { "left": [0, null, "static"], "right": [1, 6, "dynamic"] }
 		2, 3:
-			criteria = ["starter", "bottom_stack"]
-			pip_data = { "left": [0, null, "static"], "right": [-1, null, "wild"] }
-		4:
-			criteria = ["starter", "recursive"]
+			criteria = ["uncommon", "bottom_stack"]
 			pip_data = { "left": [0, null, "static"], "right": [-1, null, "wild"] }
 		_:
-			criteria = ["starter", "bottom_stack"]
+			criteria = ["uncommon", "bottom_stack"]
 			pip_data = { "left": [0, null, "static"], "right": [1, 6, "dynamic"] }
 	.initiate_domino()
 
@@ -35,8 +31,6 @@ func get_description() -> String:
 			return "Bottom deck\nDuplicate hand " + BBCode.bb_code_shuffle() + BBCode.bb_code_pile()
 		3:
 			return "Bottom deck\nDuplicate hand "+  BBCode.bb_code_shuffle() + BBCode.bb_code_pile() + "\nGain 1" + BBCode.bb_code_action_point()
-		4:
-			return "Duplicate hand " + BBCode.bb_code_shuffle() + BBCode.bb_code_pile() + "\nGain 1" + BBCode.bb_code_action_point()
 		_:
 			return "Bottom deck\nOnly " + BBCode.bb_code_attack() + " in hand\nDuplicate hand " + BBCode.bb_code_shuffle() + BBCode.bb_code_pile()
 	

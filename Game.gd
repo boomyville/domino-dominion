@@ -31,7 +31,7 @@ export var enemy_list: Array = []
 
 var selection_popup
 
-var player_scene = preload("res://Battlers/Player/Swordmaster.tscn")
+var player_scene
 
 var player
 var enemy
@@ -45,7 +45,8 @@ enum GameState {
 	DOMINO_CHECK,
 	INACTIVE,
 	GAMEOVER,
-	WAITING
+	WAITING,
+	TITLE,
 }
 
 var game_state = GameState.DEFAULT
@@ -55,7 +56,8 @@ const GAME_STATE_STRINGS = {
 	GameState.DOMINO_CHECK: "Domino Check",
 	GameState.INACTIVE: "Inactive",
 	GameState.GAMEOVER: "Game Over",
-	GameState.WAITING: "Waiting"
+	GameState.WAITING: "Waiting",
+	GameState.TITLE: "Title"
 }
 
 signal domino_action_finished
@@ -104,17 +106,39 @@ func _input(event):
 		print("Player draw pile: ", msg)
 		print("current level: ", current_level())
 	if event is InputEventKey and event.scancode == KEY_9 and event.pressed:
-		print(string_to_battler("enemy").get_name())
+		print(get_map_data())
 	if event is InputEventKey and event.scancode == KEY_0 and event.pressed:
-		print("Debugging dominos:")
-		for domino in player_hand.get_children():
-			domino.show_details()
+		print(get_game_state_string())
+		create_csv()
 			
 		#print(get_tree().root.get_children())
+		
+		
+func _ready():
+	hide_UI()
+	set_game_state(GameState.TITLE)
+	
+func hide_UI():
+	get_node("../EndTurn").hide()
+	get_node("../OptionMenu").hide()
+	get_node("../BattleText").hide()	
+	get_node("../DebugText").hide()
+
+func showUI():
+	get_node("../EndTurn").show()
+	get_node("../OptionMenu").show()
+	get_node("../BattleText").show()	
+	get_node("../DebugText").show()
+	
+func load_player(player_name: String):
+	player_scene = load("res://Battlers/Player/%s.tscn" % player_name)
+
+#=====================================================
 # Initialisation
 #=====================================================
-func _ready():
+func start_game():
 	randomize() # Initialize random number generator
+	showUI()
 
 	#map_scene.get_node("Node2D").create_nodes()
 	var first_shuffle = [3,4,5,6]
@@ -195,21 +219,6 @@ func initialize_battle():
 	enable_buttons()
 	#print("Battle initialized. Draw pile size: ", player.get_draw_pile().size())
 
-	# Connect all dominos in draw pile (enemy and player)
-	# Note that dominos created that are not in the draw pile will need to be manually connected
-	for domino in player.get_draw_pile():
-		if(is_instance_valid(domino)):
-			if !domino.is_connected("domino_pressed", self, "_on_domino_pressed"):  # Check if it's already connected
-				domino.connect("domino_pressed", self, "_on_domino_pressed") # Connect the signal
-		else:
-			print("Invalid domino in player's draw pile.")
-
-	for domino in enemy.get_draw_pile():
-		if(is_instance_valid(domino)):
-			if !domino.is_connected("domino_pressed", self, "_on_domino_pressed"):  # Check if it's already connected
-				domino.connect("domino_pressed", self, "_on_domino_pressed") # Connect the signal
-		else:
-			print("Invalid domino in enemy's draw pile.")
 
 	player.battle_start()
 	enemy.battle_start()
@@ -256,6 +265,55 @@ func get_hand(target: String) -> GridContainer:
 	elif(target.to_upper() == "ENEMY"):
 		target_hand = enemy_hand
 	return target_hand
+
+# Creates a CSV of domino criteria
+func create_csv():
+	var all_criteria = []
+	var domino_names = []
+	var max_criteria_length = 0
+	var items = string_to_battler("player").load_dominos_from_folder("res://Domino/Attack", "")
+	items.append_array(string_to_battler("player").load_dominos_from_folder("res://Domino/Skill", ""))
+	
+	# Collect names and criteria, and reorganize criteria
+	for scene in items:
+		var item = scene.instance()
+		domino_names.append(item.get_domino_name())
+		var criteria = item.get_criteria()
+		
+		# Find and move rarity to the front
+		var rarity_index = -1
+		for i in range(criteria.size()):
+			if criteria[i] in ["starter", "common", "uncommon", "rare"]:
+				rarity_index = i
+				break
+		
+		if rarity_index != -1:
+			var rarity = criteria[rarity_index]
+			criteria.remove(rarity_index)
+			criteria.push_front(rarity)
+		else:
+			criteria.push_front("unknown")  # If no rarity found
+		
+		all_criteria.append(criteria)
+		max_criteria_length = max(max_criteria_length, criteria.size())
+		item.queue_free()
+
+	# Create header
+	var header = "Domino Name,Rarity"
+	for i in range(1, max_criteria_length):
+		header += ",Criteria " + str(i)
+	print(header)
+
+	# Create rows
+	for i in range(items.size()):
+		var row = '"%s"' % domino_names[i]
+		for j in range(max_criteria_length):
+			if j < all_criteria[i].size():
+				row += ',"%s"' % str(all_criteria[i][j]).replace('"', '""')  # Escape quotes
+			else:
+				row += ","  # Empty cell
+		print(row)
+
 
 #=====================================================
 # Getters and setters
@@ -392,7 +450,7 @@ func perform_domino_action(domino_container: DominoContainer, pressed_number: in
 			print("It's not your turn!")
 
 func _on_Panel_gui_input(event:InputEvent):
-	if event is InputEventMouseButton and event.pressed:
+	if event is InputEventMouseButton and event.pressed and game_state != GameState.TITLE:
 		unselect_dominos()
 		update_domino_highlights()
 
@@ -658,7 +716,7 @@ func get_target_collection(target: String, collection: String) -> Array:
 			return string_to_battler(target).get_discard_pile() 
 		"VOID":
 			return string_to_battler(target).get_void_space()
-		"STACK":
+		"STACK", "REMOVABLE_STACK":
 			return string_to_battler(target).get_deck()
 		"UPGRADABLE_STACK":
 			var upgradable_stack: Array = []
@@ -895,6 +953,16 @@ func process_selection(selected_dominos: Array, target: String, origin_collectio
 								user_dominos.callv(method_name.to_lower(), effects[method_name])
 							else:
 								print("Method '%s' not found on domino." % method_name)
+		"REMOVABLE_STACK":
+			for user_dominos in string_to_battler(target).get_deck():
+				for domino in selected_dominos:
+					if user_dominos.check_shadow_match(domino):
+						for method_name in effects.keys():
+							if user_dominos.has_method(method_name.to_lower()):
+								print("Method ", method_name, " with args ", effects[method_name], " applied to ", user_dominos.get_domino_name())
+								user_dominos.callv(method_name.to_lower(), effects[method_name])
+							else:
+								print("Method '%s' not found on domino." % method_name)
 
 		"SAME_HAND", "SAME_HAND_DISCARD", "SAME_HAND_UPGRADE", "SAME_HAND_REROLL":
 			# For skills that apply an effect to the selected dominos
@@ -983,6 +1051,8 @@ func enemy_start_turn():
 
 	var best_sequence = calculate_best_play()  # Calculate the best sequence of dominos to play
 
+	print("AI has decided to play the following dominos:", best_sequence)
+
 	if(best_sequence.empty()):
 		print("AI cannot play any dominos. Player's turn resumes.")
 		enemy_end_turn()
@@ -1027,6 +1097,7 @@ func generate_sequences(played_number: int, remaining_action_points: int, sequen
 			# Create a new sequence and add this domino to it
 			var new_sequence = sequence.duplicate()
 			new_sequence.append(domino)
+			#print("Adding domino to sequence: ", domino.get_domino_name())
 			
 			# Add the new sequence to the list of all sequences
 			all_sequences.append(new_sequence)
@@ -1491,8 +1562,14 @@ func get_node_type(col, heal_cols, upgrade_cols, enemy_cols, boss_cols):
 	elif col in upgrade_cols and randf() > 0.5:
 		return "upgrade"
 	else:
-		return "event" if randf() > 0.7 else "enemy"
+		if randf() > 0.7:
+			return "event"
+		elif randf() > 0.85:
+			return "shop"
+		else:
+			return "enemy"
 
+		
 func get_valid_connections(node, next_nodes, max_distance):
 	var valid_next_nodes = []
 	for next_node in next_nodes:
@@ -1527,6 +1604,10 @@ func next_event():
 		
 	add_child(map_scene)
 	
+func new_shop():
+	var shop_scene = load("res://Event/Shop.tscn").instance()
+	add_child(shop_scene)
+	
 func new_mystery_event():
 	var mystery_event = load("res://Event/Event.tscn").instance()
 	add_child(mystery_event)
@@ -1547,7 +1628,7 @@ func new_battle():
 	add_enemy(enemy_scene)
 
 	initialize_dominos() # Run on_battle_start() method on all dominos
-	pre_battle_prompt()
+	pre_battle_prompt()	
 
 func pre_battle_prompt():
 	if get_battles_won() % 1 == 0:
@@ -1665,10 +1746,7 @@ func draw_hand(count: int, target: String, type: String = "ANY"):
 		collection.add_child(domino)
 		#print(collection.name, " | ", domino.domino_name, " | ", domino.get_numbers(), " | ", domino.get_action_points())
 
-		# Ensure signals connected
-		if !domino.is_connected("domino_pressed", self, "_on_domino_pressed"):  # Check if it's already connected
-			domino.connect("domino_pressed", self, "_on_domino_pressed") # Connect the signal
-		
+		domino.update_domino()
 		animate_domino(domino, collection)
 
 	string_to_battler(target).process_excess_draw()

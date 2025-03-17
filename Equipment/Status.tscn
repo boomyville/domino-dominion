@@ -91,6 +91,7 @@ mouse_filter = 2
 columns = 9
 
 [node name="PlayerSprite" parent="Node2D" instance=ExtResource( 7 )]
+frame = 3
 
 [node name="GemsText" type="RichTextLabel" parent="Node2D"]
 margin_left = 12.0

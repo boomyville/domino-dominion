@@ -43,10 +43,14 @@ func get_max_upgrade_level() -> int:
 		return 2
 	return 4
 
-func upgrade_equipment(value: int = 1) -> bool:
-	if can_upgrade():
-		var new_upgrade_level = min(value + upgrade_level, self.get_max_upgrade_level())
-		set_upgrade_level(new_upgrade_level)
+func upgrade_equipment(value: int = 1, over_upgrade: bool = false) -> bool:
+	if can_upgrade(over_upgrade):
+		if over_upgrade:
+			var new_upgrade_level = min(value + upgrade_level, self.get_max_upgrade_level())
+			set_upgrade_level(new_upgrade_level)
+		else:
+			var new_upgrade_level = min(value + upgrade_level, self.get_max_upgrade_level() - 1)
+			set_upgrade_level(new_upgrade_level)
 		return true
 	return false
 
@@ -54,6 +58,7 @@ func set_upgrade_level(value: int):
 	var new_upgrade_level = max(0, min(self.get_max_upgrade_level(), value))
 	upgrade_level = new_upgrade_level
 	initiate_equipment()
+
 func can_upgrade(over_upgrade = false) -> bool:
 	if (over_upgrade):
 		return upgrade_level < get_max_upgrade_level()
@@ -92,7 +97,7 @@ func get_description() -> String:
 	return self.description
 
 func get_equipment_name_with_bb_code():
-	return "[font=res://Fonts/VAlign.tres][img]" + self.icon + "[/img][/font] " + self.equipment_name
+	return "[font=res://Fonts/VAlign.tres][img]" + self.icon + "[/img][/font] " + self.get_name()
 
 func initiate_equipment():
 	pass
@@ -100,11 +105,11 @@ func initiate_equipment():
 func get_value() -> int:
 	var value = 0
 	if(get_criteria().has("common")):
-		value += 10
+		value += 20
 	if(get_criteria().has("uncommon")):
-		value += 25
+		value += 35
 	if(get_criteria().has("rare")):
-		value += 50
+		value += 55
 	if(!get_criteria().has("any")):
 		value += 20
 	if(self.is_cursed()):
