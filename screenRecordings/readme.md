@@ -96,4 +96,16 @@ Eleventh Build (Closed source release)
 - Added advanced stuff like ability to add temporary dominos to the game
 - Added a settings option
 
-![Elventh Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/CurrentBuild.gif?raw=true)
+![Elventh Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/8February2025.gif?raw=true)
+
+Twelth Build 
+- Added title screeen with character select
+- Added shop
+- Added a map similar to FTL and Slay the Spire
+- Added a new playable character
+- Added new equipment
+- Added new dominos
+- Added new effects
+- Fixed some UI bugs such as text boxes blocking mouse clicks for UI elements
+
+- ![Twelth Build](https://github.com/boomyville/domino-dominion/blob/main/screenRecordings/CurrentBuild.gif?raw=true)
