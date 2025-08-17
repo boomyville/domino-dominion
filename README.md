@@ -2,7 +2,8 @@
 
 ## Demo
 
-(https://boomyville.itch.io/domino-dominion)[itch.io]
+[(itch.io)[itch.io]](https://boomyville.itch.io/domino-dominion)
+
 ## Introduction
 A Boomarian Quest game made with Godot. Domino deckbuilder game with interesting mechanics
 
