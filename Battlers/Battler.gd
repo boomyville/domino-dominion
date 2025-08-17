@@ -361,59 +361,17 @@ func get_action_points_per_turn():
 
 func get_hand():
 	if(self.battler_type.to_upper() == "PLAYER"):
-		return game.player_hand
+		return game.get_hand("player")
 	elif(self.battler_type.to_upper() == "ENEMY"):
-		return game.enemy_hand
+		return game.get_hand("enemy")
 
 func remove_domino(collection, domino: DominoContainer):
 	# Locate the matching domino in the collection
-	for user_dominos in collection.get_children():
+	for user_dominos in collection:
 		if user_dominos.check_shadow_match(domino):
 			# Disable interactions for the domino being removed
-			user_dominos.set_block_signals(true)
-
-			# Add a tween to animate the removal
-			var tween = game.tween
-			
-			# Set up the fade-out animation
-			tween.interpolate_property(user_dominos, "modulate:a", 1, 0, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
-			
-			# Set up the fall animation (with gravity effect)
-			var start_position = user_dominos.rect_global_position
-			var end_position = start_position + Vector2(0, 400)  # Fall distance
-			tween.interpolate_property(user_dominos, "rect_global_position", start_position, end_position, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN)
-
-			# Start the tween for the removal animation
-			tween.start()
-
-			yield(get_tree().create_timer(0.5), "timeout")  # Wait for the animation to finish
-
-			remove_domino_after_tween(user_dominos, collection)
-			return  # Exit after animating the matched domino
-
-# Callback function to finalize removal and rearrange remaining dominos
-func remove_domino_after_tween(user_domino, collection):
-
-	#var start_position = user_domino.get_global_position()
-	
-	# Remove the domino from its collection
-	collection.remove_child(user_domino)
-	# Animate the remaining dominos to slide into their new positions
-	var tween = game.tween
-	for i in range(collection.get_child_count()):
-		var remaining_domino = collection.get_child(i)
-		var target_position = remaining_domino.final_domino_position(i, collection)
-		
-		# Interpolate the domino to the new position
-		tween.interpolate_property(remaining_domino, "rect_position", remaining_domino.rect_position, target_position, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
-	
-	# Start the sliding animation for remaining dominos
-	tween.start()
-	
-	# Wait for the animation to finish
-	yield(get_tree().create_timer(1), "timeout")
-
-	# Update highlights or other properties after movement
+			collection.remove(user_dominos)
+			break  # Exit after animating the matched domino
 	game.update_domino_highlights()
 
 func get_draw_pile():
@@ -537,7 +495,7 @@ func add_to_hand(domino: DominoContainer, type = "pile", remove_from_collection:
 # Discards drawn dominos or prompts user to discard X dominos if hand size > max_hand_size
 func process_excess_draw():
 	var hand = self.get_hand()
-	var excess = hand.get_child_count() - self.get_max_hand_size()
+	var excess = hand.size() - self.get_max_hand_size()
 
 	if(excess > 0):
 		if(self.auto_discard ||  self.battler_type.to_upper() == "ENEMY"):

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GDScript Beautifier</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/standalone.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-babel.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: left;
+        }
+        .CodeMirror {
+            border: 1px solid #ddd;
+            height: 300px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>GDScript Beautifier</h1>
+    <textarea id="code"></textarea>
+    <br>
+    <button onclick="beautifyCode()">Beautify</button>
+    
+    <script>
+        const editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+            mode: "python", // Using Python mode as GDScript is indentation-based
+            lineNumbers: true,
+            indentUnit: 4,
+            theme: "default"
+        });
+
+        function beautifyCode() {
+            let code = editor.getValue();
+            
+            // Ensure 'onready' and 'export' are on the same line as 'var'
+            code = code.replace(/\b(onready|export)\s+\nvar/g, "$1 var");
+            
+            // Preserve variable grouping by not adding unnecessary newlines
+            code = code.replace(/(var .+?);?\n\n(var .+?)/g, "$1;\n$2");
+            
+            // Remove excessive whitespace between functions and conditions
+            code = code.replace(/\n{3,}/g, "\n\n");
+            
+            // Fix indentation properly
+            let lines = code.split("\n");
+            let indentLevel = 0;
+            let newLines = [];
+            let indentStack = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                let trimmed = lines[i].trim();
+                
+                if (trimmed.endsWith(":")) {
+                    newLines.push("    ".repeat(indentLevel) + trimmed);
+                    indentStack.push(indentLevel);
+                    indentLevel++;
+                } else {
+                    while (indentStack.length > 0 && lines[i].startsWith(" ") === false) {
+                        indentLevel = indentStack.pop();
+                    }
+                    newLines.push("    ".repeat(indentLevel) + trimmed);
+                }
+            }
+            
+            code = newLines.join("\n");
+            editor.setValue(code);
+        }
+    </script>
+</body>
+</html>

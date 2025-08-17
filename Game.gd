@@ -8,13 +8,9 @@ export var touch_mode = true # If touch mode is enabled, dominos need to be tapp
 export var detailed_descriptors = true # If detailed descriptors are enabled, the player can view the full description of a domino when selected
 
 # UI elements
-onready var player_hand = get_node("../GameBoard/PlayerHand") # Player's hand container
-onready var enemy_hand = get_node("../EnemyHand") # AI's hand container (non-clickable)
-onready var play_board = get_node("../PlayBoard/HBoxContainer") # Play field container
 onready var end_turn_button = get_node("../EndTurn") # Button for ending turn
 onready var battle_text = get_node("../BattleText")
 onready var debug_text = get_node("../DebugText")
-onready var tween = get_node("../GameBoard/Tween")
 
 onready var window_width = get_viewport().get_visible_rect().size.x
 var separation = 240
@@ -62,6 +58,19 @@ const GAME_STATE_STRINGS = {
 
 signal domino_action_finished
 
+# Domino land stores all dominos in the game
+var domino_land = {
+	"player_draw_pile": [],
+	"player_hand": [],
+	"player_discard": [],
+	"player_void": [],
+	"enemy_draw_pile": [],
+	"enemy_hand": [],
+	"enemy_discard": [],
+	"enemy_void": [],
+	"board": []
+}
+
 #=====================================================
 # Debug
 #=====================================================
@@ -72,10 +81,11 @@ func _input(event):
 		player.afflict_status("Fury", 0, 1)
 		print(get_game_state_string())
 	if event is InputEventKey and event.scancode == KEY_2 and event.pressed:
-		for domino in player.get_hand().get_children():
-			domino.alter_upgrade_domino(1)
-		for domino in player.get_draw_pile():
-			domino.alter_upgrade_domino(1)
+		#for domino in player.get_hand().get_children():
+		#	domino.alter_upgrade_domino(1)
+		#for domino in player.get_draw_pile():
+		#		domino.alter_upgrade_domino(1)
+		print(player.get_hand())
 	if event is InputEventKey and event.scancode == KEY_3 and event.pressed:
 		Engine.time_scale = 10.0
 		Engine.iterations_per_second = 600  # Smoother physics updates
@@ -113,7 +123,6 @@ func _input(event):
 			
 		#print(get_tree().root.get_children())
 		
-		
 func _ready():
 	hide_UI()
 	set_game_state(GameState.TITLE)
@@ -140,13 +149,7 @@ func start_game():
 	randomize() # Initialize random number generator
 	showUI()
 
-	#map_scene.get_node("Node2D").create_nodes()
-	var first_shuffle = [3,4,5,6]
-	first_shuffle.shuffle()
-	var second_shuffle = [7,8,9,10]
-	second_shuffle.shuffle()
-	map_data = generate_map_data(12, 0, 240, 72, 48, 12, [first_shuffle[0], second_shuffle[0]], [first_shuffle[1], second_shuffle[2]], [0], [])
-	#print(map_data)
+	create_map()
 
 	initialise_enemy_list() # Initialize the enemy list
 
@@ -165,13 +168,14 @@ func start_game():
 	# Draw the first (board only) domino to start the game
 	draw_first_domino()
 
-func initialize_dominos():
-	for domino in player.get_draw_pile():
-		if is_instance_valid(domino):
-			domino.on_battle_start()
-	for domino in enemy.get_draw_pile():
-		if is_instance_valid(domino):
-			domino.on_battle_start()
+func create_map():
+	#map_scene.get_node("Node2D").create_nodes()
+	var first_shuffle = [3,4,5,6]
+	first_shuffle.shuffle()
+	var second_shuffle = [7,8,9,10]
+	second_shuffle.shuffle()
+	map_data = generate_map_data(12, 0, 240, 72, 48, 12, [first_shuffle[0], second_shuffle[0]], [first_shuffle[1], second_shuffle[2]], [0], [])
+	#print(map_data)
 
 func initialize_units():
 	player_turn = true
@@ -204,7 +208,6 @@ func initialise_enemy_list():
 	intemediate_list.shuffle()
 	enemy_list.append_array(intemediate_list.slice(0, 1))
 
-
 func get_enemy_list():
 	return enemy_list
 
@@ -213,6 +216,14 @@ func get_next_enemy():
 		initialise_enemy_list()
 	var enemy_index = get_battles_won() % get_enemy_list().size()
 	return enemy_list[enemy_index]
+
+func initialize_dominos():
+	for domino in player.get_draw_pile():
+		if is_instance_valid(domino):
+			domino.on_battle_start()
+	for domino in enemy.get_draw_pile():
+		if is_instance_valid(domino):
+			domino.on_battle_start()
 	
 func initialize_battle():
 
@@ -234,7 +245,7 @@ func draw_first_domino():
 	var domino = DominoContainerScene.instance()
 	domino.set_user("board") # Set the user to the board
 	domino.set_numbers(first_domino_number, first_domino_number, "board") # Set the numbers for the domino
-	play_board.add_child(domino)
+	#play_board.add_child(domino)
 	set_played_number(first_domino_number) # Set the last played number
 
 #=====================================================
@@ -261,9 +272,9 @@ func string_to_battler(target: String):
 func get_hand(target: String) -> GridContainer:
 	var target_hand
 	if(target.to_upper() == "PLAYER"):
-		target_hand = player_hand
+		target_hand = domino_land.player_hand
 	elif(target.to_upper() == "ENEMY"):
-		target_hand = enemy_hand
+		target_hand = domino_land.enemy_hand
 	return target_hand
 
 # Creates a CSV of domino criteria
@@ -338,7 +349,7 @@ func set_game_state(state):
 		var dominos_played = 0
 		var all_dominos_played = []
 
-		for domino in play_board.get_children():
+		for domino in domino_land.board:
 			if domino.get_user().to_upper() == "PLAYER":
 				dominos_played += 1
 				all_dominos_played.append(domino.get_domino_name())
@@ -380,7 +391,6 @@ func set_game_state(state):
 		
 		gameover_scene.show_scene()	
 
-	correct_domino_position()
 
 func get_game_state_string() -> String:
 	return GAME_STATE_STRINGS[game_state]
@@ -414,10 +424,10 @@ func _Input(event):
 		unselect_dominos()
 
 func unselect_dominos():
-	for domino in player_hand.get_children():
+	for domino in get_hand("player"):
 		if domino is DominoContainer:
 			domino.set_clicked(false)
-	for domino in enemy_hand.get_children():
+	for domino in get_hand("enemy"):
 		if domino is DominoContainer:
 			domino.set_clicked(false)
 
@@ -487,6 +497,7 @@ func move_domino_to_playfield(domino_container):
 	# Reset colour of domino
 	domino_container.modulate = Color(1, 1, 1)
 	
+	"""
 	if not domino_container.is_connected("action_completed", self, "_on_action_completed"):
 		domino_container.connect("action_completed", self, "_on_action_completed")
 		print("Signal connected successfully!")
@@ -496,13 +507,6 @@ func move_domino_to_playfield(domino_container):
 	# Apply domino effect (such as damage or shielding)
 	# Action point costs
 	
-	if domino_container.get_user().to_upper() == "PLAYER":
-		domino_container.effect(player, enemy)
-		player.spend_action_points(domino_container.get_action_points())
-	elif domino_container.get_user().to_upper() == "ENEMY":
-		domino_container.effect(enemy, player)
-		enemy.spend_action_points(domino_container.get_action_points())
-
 	# Movement is relative to play_board so we need to subtract the playboard absolute position (such that the resultant vector is relative to play_board)
 	var start_position = domino_container.get_global_position() - play_board.get_global_position()
 	
@@ -542,11 +546,19 @@ func move_domino_to_playfield(domino_container):
 	reposition_domino_hand() # Reposition the dominos in the player's hand (and enemy's hand)
 
 	# Update the last played number (the second number of the domino)
-	set_played_number(domino_container.get_numbers()[1])
 	
 	# Wait for the "action_completed" signal from the domino
 	yield(domino_container, "action_completed")
+	"""
+	if domino_container.get_user().to_upper() == "PLAYER":
+		domino_container.effect(player, enemy)
+		player.spend_action_points(domino_container.get_action_points())
+	elif domino_container.get_user().to_upper() == "ENEMY":
+		domino_container.effect(enemy, player)
+		enemy.spend_action_points(domino_container.get_action_points())
 
+	set_played_number(domino_container.get_numbers()[1])
+	
 	set_game_state(GameState.DEFAULT)	
 	var _game_over_state = check_game_over() # Check if the game is over
 	
@@ -648,32 +660,6 @@ func self_shield(defender, amount: int, simulate_shield: bool = false) -> int:
 	defender.update()
 	return amount
 
-func reposition_domino_hand():
-	# Animate the remaining dominos in the player's hand to their new positions
-	#var old_pos = Vector2(-1, 0)
-	for i in range(player_hand.get_child_count()):
-		var remaining_domino = player_hand.get_child(i)
-		var new_position = remaining_domino.final_domino_position(i, player_hand)
-		#print("New position for: ", remaining_domino.get_domino_name(), " ", new_position)
-		#if(new_position == old_pos):
-		#	print("uh oh... domino has been set the same position as the last one")
-		#else:
-		#	old_pos = new_position
-		tween.interpolate_property(remaining_domino, "rect_position", remaining_domino.rect_position, new_position, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
-	
-	for i in range(enemy_hand.get_child_count()):
-		var remaining_domino = enemy_hand.get_child(i)
-		var new_position = remaining_domino.final_domino_position(i, enemy_hand)
-		tween.interpolate_property(remaining_domino, "rect_position", remaining_domino.rect_position, new_position, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
-	
-	tween.start()
-	play_board.get_parent().set_h_scroll(play_board.rect_size.x)
-	yield(tween, "tween_all_completed")
-
-func correct_domino_position():
-	for i in range(player_hand.get_child_count()):
-		player_hand.get_child(i).rect_position = player_hand.get_child(i).final_domino_position(i, player_hand)
-
 func _on_action_completed():
 	print("Waiting finished")
 	set_game_state(GameState.DEFAULT)	
@@ -698,9 +684,9 @@ func show_popup(text: String, target, text_color = "Red", animation = "PopupAnim
 func get_target_collection(target: String, collection: String) -> Array:
 	var target_collection
 	if(target.to_upper() == "PLAYER"):
-		target_collection = player_hand
+		target_collection = get_hand("player")
 	elif(target.to_upper() == "ENEMY"):
-		target_collection = enemy_hand
+		target_collection = get_hand("enemy")
 	match collection.to_upper():
 		"HAND":
 			return target_collection.get_children()
@@ -803,84 +789,18 @@ func remove_from_collection(domino: DominoContainer, target_battler: String, ori
 	update_domino_highlights()
 
 # Special method for erasing from hand (tween animation)
-func erase_from_hand(collection: GridContainer, domino: DominoContainer):
-	for user_dominos in collection.get_children():
+func erase_from_hand(collection: Array, domino: DominoContainer):
+	for user_dominos in collection:
 		if user_dominos.check_shadow_match(domino):
-			# Disable interactions for the domino being removed
-			user_dominos.set_block_signals(true)
-
-			# Get the global position of the domino before removing it
-			var global_position = user_dominos.rect_global_position
-
-			# Temporarily remove the domino from the container so it can be freely animated
-			collection.remove_child(user_dominos)
-			get_tree().root.add_child(user_dominos)  # Add it directly to the root or main node of the scene tree
-
-			# Set the position to the original global position
-			user_dominos.rect_global_position = global_position
-
-			# Set up the fade-out animation
-			tween.interpolate_property(user_dominos, "modulate:a", 1, 0, 1, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
-			
-			# Set up the fall animation (with gravity effect)
-			var start_position = user_dominos.rect_position
-			var end_position = start_position + Vector2(0, 400)  # Fall distance
-			
-			tween.interpolate_property(user_dominos, "rect_position", start_position, end_position, 1, Tween.TRANS_LINEAR, Tween.EASE_IN)
-
-			# Start the tween for the removal animation
-			tween.start()
-
-			# Wait for the animation to finish
-			#yield(get_tree().create_timer(1), "timeout")
-			wait(1, GameState.DEFAULT)
-
-			# Free the domino after the animation
-			#user_dominos.queue_free()
-
-			# Reposition remaining dominos in the collection
-			reposition_domino_hand()
-			return  # Exit after animating the matched domino
+			collection.remove(user_dominos); 
+			break;
 	update_domino_highlights()
 
 func erase_from_board(domino: DominoContainer):
-	for user_dominos in play_board.get_children():
+	for user_dominos in domino_land.board:
 		if user_dominos.check_shadow_match(domino):
-			# Disable interactions for the domino being removed
-			user_dominos.set_block_signals(true)
-
-			# Get the global position of the domino before removing it
-			var global_position = user_dominos.rect_global_position
-
-			# Temporarily remove the domino from the container so it can be freely animated
-			play_board.remove_child(user_dominos)
-			get_tree().root.add_child(user_dominos)  # Add it directly to the root or main node of the scene tree
-
-			# Set the position to the original global position
-			user_dominos.rect_global_position = global_position
-
-			# Set up the fade-out animation
-			tween.interpolate_property(user_dominos, "modulate:a", 1, 0, 1, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
-			
-			# Set up the fall animation (with gravity effect)
-			var start_position = user_dominos.rect_position
-			var end_position = start_position + Vector2(0, 400)  # Fall distance
-			
-			tween.interpolate_property(user_dominos, "rect_position", start_position, end_position, 1, Tween.TRANS_LINEAR, Tween.EASE_IN)
-
-			# Start the tween for the removal animation
-			tween.start()
-
-			# Wait for the animation to finish
-			#yield(get_tree().create_timer(1), "timeout")
-			wait(1, GameState.DEFAULT)
-
-			# Free the domino after the animation
-			#user_dominos.queue_free()
-
-			# Reposition remaining dominos in the collection
-			#reposition_domino_hand()
-			return  # Exit after animating the matched domino
+			domino_land.board.remove(user_dominos)
+			break;
 	update_domino_highlights()
 
 func domino_selection(selection_minimum: int, maximium_selection: int, origin_domino: DominoContainer, target: String, collection: String, collection_size: int = -1, destination_collection: String = "hand", effect: Dictionary = {}, randomise: bool = false):
@@ -997,7 +917,7 @@ func return_playfield_dominos(selected_dominos: Array, destination_collection: S
 		if domino.get_user().to_upper() == "BOARD":
 			print("Ignore first domino")
 		else:
-			for played_domino in play_board.get_children():
+			for played_domino in domino_land.board:
 				print("Checking domino: ", played_domino.domino_name, " against ", domino.domino_name)
 				if played_domino.check_shadow_match(domino):
 					var target = played_domino.get_user()
@@ -1036,7 +956,7 @@ func _on_end_turn_pressed():
 			if player_turn:
 				player_turn = false			
 				player.on_turn_end() # Reset the dominos played this turn
-				domino_turn_end_effects(player_hand, player)
+				domino_turn_end_effects(get_hand("player"), player)
 				enemy_start_turn()
 
 # AI plays its dominos
@@ -1070,7 +990,7 @@ func enemy_start_turn():
 # Helper function: Get a list of all playable dominos
 func get_playable_dominos() -> Array:
 	var playable_dominos = []
-	for domino in enemy_hand.get_children():
+	for domino in get_hand("enemy"):
 		if domino.can_play(last_played_number, enemy, player, domino.get_numbers()[0]) in ["swap", "playable"]:
 			playable_dominos.append(domino)
 	return playable_dominos
@@ -1082,7 +1002,7 @@ func evaluate_sequence(sequence: Array) -> int:
 
 # Recursive helper function to generate all valid sequences
 func generate_sequences(played_number: int, remaining_action_points: int, sequence: Array, all_sequences: Array) -> void:
-	for domino in enemy_hand.get_children():
+	for domino in get_hand("enemy"):
 		if domino in sequence:
 			continue  # Skip already played dominos
 		if remaining_action_points < domino.get_action_points():
@@ -1131,7 +1051,7 @@ func simulate_play_sequence(current_domino, played_number, sequence, remaining_a
 	var simulated_last_number = current_domino.get_numbers()[1]
 
 	# Find the next playable domino
-	for domino in enemy_hand.get_children():
+	for domino in get_hand("enemy"):
 		if domino in sequence:
 			continue  # Skip already played dominos
 		if remaining_action_points < domino.get_action_points():
@@ -1150,12 +1070,12 @@ func highlight_enemy_intentions():
 
 # Helper function: Remove modulate from all enemy dominos
 func reset_enemy_domino_highlights():
-	for domino in enemy_hand.get_children():
+	for domino in get_hand("enemy"):
 		domino.modulate = Color(1, 1, 1)
 
 func enemy_end_turn():
 	enemy.on_turn_end() # Reset the dominos played this turn
-	domino_turn_end_effects(enemy_hand, enemy)
+	domino_turn_end_effects(get_hand("enemy"), enemy)
 
 	player_start_turn()  # Start the player's turn
 
@@ -1174,7 +1094,7 @@ func player_start_turn():
 		effect.update_duration(player)
 	
 	# Dominos
-	for domino in player_hand.get_children():
+	for domino in get_hand("player"):
 		domino.on_turn_start()
 
 	draw_hand(player.get_draw_per_turn(), "PLAYER", "ANY")  # Draw dominos for the player
@@ -1227,7 +1147,7 @@ func wait(time: float, next_game_state):
 
 # Remove dominos from their parents so they can be re-parented in a new battle
 func disable_player_dominos():
-	for domino in player_hand.get_children():
+	for domino in get_hand("player"):
 		domino.set_clickable(false)
 	
 #=====================================================
@@ -1275,12 +1195,13 @@ func battle_rewards():
 	reset_game_state()
 
 func reset_game_state():
-	for child in player_hand.get_children():
-		player_hand.remove_child(child)
-	for child in enemy_hand.get_children():
-		enemy_hand.remove_child(child)
-	for child in play_board.get_children():
-		play_board.remove_child(child)
+	for domino in get_hand("player"):
+		get_hand("player").remove(domino)
+	for domino in get_hand("enemy"):
+		get_hand("enemy").remove(domino)
+	for domino in domino_land.board:
+		domino_land.board.remove(domino)
+
 	if(is_instance_valid(enemy)):
 		remove_child(enemy)
 
@@ -1681,10 +1602,10 @@ func draw_hand(count: int, target: String, type: String = "ANY"):
 	var targetDrawPile
 
 	# Potential for get_hand to not return a container (enemy / player container)
-	if target == "PLAYER":
-		collection = player_hand
-	elif target == "ENEMY":
-		collection = enemy_hand
+	if target.to_upper() == "PLAYER":
+		collection = get_hand("player")
+	elif target.to_upper() == "ENEMY":
+		collection = get_hand("enemy")
 	else:
 		collection = get_hand(target)
 		print("Collection: ", collection, " | target: ", target)
@@ -1721,7 +1642,7 @@ func draw_hand(count: int, target: String, type: String = "ANY"):
 			return
 		targetDrawPile.erase(domino) # Remove it from the draw pile
 		# Set initial opacity to 0
-		domino.modulate.a = 0
+		# domino.modulate.a = 0
 
 		# Add domino to hand effect
 		var domino_data = {"user": string_to_battler(target), "domino": domino} 
@@ -1739,11 +1660,12 @@ func draw_hand(count: int, target: String, type: String = "ANY"):
 
 		# Need to remove parent on ephemeral dominos when the battle ends
 		# HOT FIX - Remove parent from domino so we can add it
-		if domino.get_parent() != null:
-			domino.get_parent().remove_child(domino)
-			print(domino.get_parent(), " is parent of ", domino.domino_name)	
+		#if domino.get_parent() != null:
+		#	domino.get_parent().remove_child(domino)
+		#	print(domino.get_parent(), " is parent of ", domino.domino_name)	
 
-		collection.add_child(domino)
+		collection.append(domino)
+		#collection.add_child(domino)
 		#print(collection.name, " | ", domino.domino_name, " | ", domino.get_numbers(), " | ", domino.get_action_points())
 
 		domino.update_domino()
@@ -1775,24 +1697,7 @@ func get_random_draw(type: String, targetDrawPile: Array) -> Array:
 
 # Animate the domino sliding from the right to its position in the HBoxContainer
 func animate_domino(domino, container: GridContainer):
-
-	# Calculate the starting position (off-screen to the right)
-	var start_position = Vector2(OS.window_size.x, domino.rect_position.y)
-	
-	# Set the initial position to the start position
-	domino.rect_position = start_position
-	var end_position = domino.final_domino_position(int(max(0, container.get_child_count() - 1)), container)
-	
-	#print("Start position: ", start_position, " | End position: ", end_position, " container:" , container.name, " | parent: ", domino.get_parent().name + " | domino name: ", domino.domino_name)
-
-	# Show the domino and animate it to its position in the container
-	var delay = 1.0
-	tween.interpolate_property(domino, "rect_position", start_position, end_position, delay, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
-	tween.interpolate_property(domino, "modulate:a", 0, 1, 0.1, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
-	tween.start()
-
-	wait(delay, GameState.DEFAULT)
-	#yield(get_tree().create_timer(delay), "timeout") # Wait for the animation to finish
+	pass
 	update_domino_highlights() # Update the highlights of the dominos in the player's hand
 	
 	#domino.visible = true
@@ -1805,7 +1710,7 @@ func update_battle_text(text: String):
 	debug_text.text = get_game_state_string()
 
 func update_domino_highlights():
-	for domino in player_hand.get_children():
+	for domino in get_hand("player"):
 		if domino is DominoContainer:
 			var can_be_played = domino.can_play(last_played_number, player, enemy)
 			domino.update_highlight(can_be_played == "swap" || can_be_played == "playable")
@@ -1861,7 +1766,7 @@ func write_battle_log():
 	var played_dominos = []
 	var discarded_dominos = []
 	var voided_dominos = []
-	for domino in play_board.get_children():
+	for domino in domino_land.board:
 		if domino.get_user().to_upper() == "PLAYER":
 			played_dominos.append(domino.get_domino_name())
 	for domino in player.get_discard_pile():

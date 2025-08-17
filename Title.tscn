@@ -18,11 +18,13 @@ atlas = ExtResource( 2 )
 region = Rect2( 864, 0, 432, 288 )
 
 [sub_resource type="AnimatedTexture" id=3]
+flags = 4
 frames = 2
 frame_0/texture = SubResource( 2 )
 frame_1/delay_sec = 0.0
 
 [sub_resource type="AtlasTexture" id=4]
+flags = 4
 atlas = SubResource( 3 )
 region = Rect2( 0, 0, 432, 288 )
 
